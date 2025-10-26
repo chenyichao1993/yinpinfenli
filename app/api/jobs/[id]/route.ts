@@ -62,7 +62,18 @@ export async function GET(
 
         // If successful, save track URLs
         if (newStatus === 'success' && statusResponse.resultData.downloadUrl) {
-          const downloadUrls = statusResponse.resultData.downloadUrl;
+          let downloadUrls = statusResponse.resultData.downloadUrl;
+          
+          // Parse if it's a JSON string
+          if (typeof downloadUrls === 'string') {
+            try {
+              downloadUrls = JSON.parse(downloadUrls);
+            } catch (e) {
+              console.error('Failed to parse downloadUrl:', e);
+              downloadUrls = {};
+            }
+          }
+          
           console.log('Download URLs received:', JSON.stringify(downloadUrls, null, 2));
           
           const tracks = [];
