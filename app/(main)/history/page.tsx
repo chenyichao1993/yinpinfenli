@@ -26,6 +26,17 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; variant: any; icon: any 
   failed: { label: 'Failed', variant: 'destructive' as const, icon: AlertCircle },
 };
 
+// Sort separation types with vocals first
+const sortSeparationTypes = (types: string[]) => {
+  return [...types].sort((a, b) => {
+    const isAVocal = a === 'vocals' || a === 'vocal';
+    const isBVocal = b === 'vocals' || b === 'vocal';
+    if (isAVocal && !isBVocal) return -1;
+    if (!isAVocal && isBVocal) return 1;
+    return 0;
+  });
+};
+
 export default function HistoryPage() {
   const [jobs, setJobs] = useState<SeparationJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +168,7 @@ export default function HistoryPage() {
 
                           {/* Stems */}
                           <div className="flex flex-wrap gap-2 mt-3">
-                            {job.separation_types.map((type) => {
+                            {sortSeparationTypes(job.separation_types).map((type) => {
                               const typeInfo = SEPARATION_TYPES[type];
                               if (!typeInfo) return null; // Skip unknown types
                               

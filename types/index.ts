@@ -20,6 +20,7 @@ export interface AudioUpload {
 
 export type SeparationType = 
   | 'vocals' 
+  | 'vocal'  // Backward compatibility
   | 'drum' 
   | 'bass' 
   | 'electric_guitar' 
@@ -28,6 +29,7 @@ export type SeparationType =
 
 export const SEPARATION_TYPES: Record<SeparationType, { label: string; icon: string }> = {
   vocals: { label: 'Vocals', icon: '🎤' },
+  vocal: { label: 'Vocals', icon: '🎤' },  // Backward compatibility
   drum: { label: 'Drums', icon: '🥁' },
   bass: { label: 'Bass', icon: '🎸' },
   electric_guitar: { label: 'Electric Guitar', icon: '🎸' },
