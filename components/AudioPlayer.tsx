@@ -23,7 +23,7 @@ export function AudioPlayer({ trackType, mp3Url, wavUrl, className }: AudioPlaye
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const trackInfo = SEPARATION_TYPES[trackType];
+  const trackInfo = SEPARATION_TYPES[trackType] || { label: trackType, icon: '🎵' };
 
   useEffect(() => {
     const audio = audioRef.current;

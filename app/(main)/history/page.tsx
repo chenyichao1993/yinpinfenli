@@ -157,15 +157,20 @@ export default function HistoryPage() {
 
                           {/* Stems */}
                           <div className="flex flex-wrap gap-2 mt-3">
-                            {job.separation_types.map((type) => (
-                              <div
-                                key={type}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-sm"
-                              >
-                                <span>{SEPARATION_TYPES[type].icon}</span>
-                                <span>{SEPARATION_TYPES[type].label}</span>
-                              </div>
-                            ))}
+                            {job.separation_types.map((type) => {
+                              const typeInfo = SEPARATION_TYPES[type];
+                              if (!typeInfo) return null; // Skip unknown types
+                              
+                              return (
+                                <div
+                                  key={type}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-sm"
+                                >
+                                  <span>{typeInfo.icon}</span>
+                                  <span>{typeInfo.label}</span>
+                                </div>
+                              );
+                            })}
                           </div>
 
                           {/* Success - Show track count */}
