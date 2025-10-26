@@ -37,6 +37,31 @@ export const SEPARATION_TYPES: Record<SeparationType, { label: string; icon: str
   others: { label: 'Others', icon: '🎵' },
 };
 
+// Unified sort order for all pages
+export const TRACK_SORT_ORDER: SeparationType[] = [
+  'vocals',
+  'vocal',
+  'drum',
+  'bass',
+  'electric_guitar',
+  'acoustic_piano',
+  'others',
+];
+
+// Sort function for separation types
+export const sortSeparationTypes = (types: string[]): string[] => {
+  return [...types].sort((a, b) => {
+    const indexA = TRACK_SORT_ORDER.indexOf(a as SeparationType);
+    const indexB = TRACK_SORT_ORDER.indexOf(b as SeparationType);
+    
+    // If not in sort order, put at end
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    
+    return indexA - indexB;
+  });
+};
+
 export type JobStatus = 'waiting' | 'running' | 'success' | 'failed';
 
 export interface SeparationJob {

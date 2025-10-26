@@ -8,7 +8,8 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 import { Progress } from '@/components/ui/progress';
 import { Clock, CheckCircle2, AlertCircle, Loader2, Music } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
-import type { SeparationJob, JobStatus } from '@/types';
+import type { SeparationJob, JobStatus, SeparatedTrack } from '@/types';
+import { sortSeparationTypes } from '@/types';
 
 const STATUS_CONFIG: Record<JobStatus, { label: string; icon: any; variant: any; color: string }> = {
   waiting: {
@@ -37,15 +38,14 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; icon: any; variant: any;
   },
 };
 
-// Sort tracks with vocals first
-const sortTracks = (tracks: any[]) => {
-  return [...tracks].sort((a, b) => {
-    const isAVocal = a.track_type === 'vocals' || a.track_type === 'vocal';
-    const isBVocal = b.track_type === 'vocals' || b.track_type === 'vocal';
-    if (isAVocal && !isBVocal) return -1;
-    if (!isAVocal && isBVocal) return 1;
-    return 0;
-  });
+// Sort tracks using unified sort order
+const sortTracks = (tracks: SeparatedTrack[]) => {
+  const trackTypes = tracks.map(t => t.track_type);
+  const sortedTypes = sortSeparationTypes(trackTypes);
+  
+  return sortedTypes.map(type => 
+    tracks.find(t => t.track_type === type)
+  ).filter(Boolean) as SeparatedTrack[];
 };
 
 export default function JobPage({ params }: { params: { id: string } }) {

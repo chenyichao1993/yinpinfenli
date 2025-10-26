@@ -17,24 +17,13 @@ import {
 } from 'lucide-react';
 import { formatDate, formatBytes } from '@/lib/utils';
 import type { SeparationJob, JobStatus } from '@/types';
-import { SEPARATION_TYPES } from '@/types';
+import { SEPARATION_TYPES, sortSeparationTypes } from '@/types';
 
 const STATUS_CONFIG: Record<JobStatus, { label: string; variant: any; icon: any }> = {
   waiting: { label: 'Waiting', variant: 'warning' as const, icon: Clock },
   running: { label: 'Processing', variant: 'info' as const, icon: Loader2 },
   success: { label: 'Completed', variant: 'success' as const, icon: CheckCircle2 },
   failed: { label: 'Failed', variant: 'destructive' as const, icon: AlertCircle },
-};
-
-// Sort separation types with vocals first
-const sortSeparationTypes = (types: string[]) => {
-  return [...types].sort((a, b) => {
-    const isAVocal = a === 'vocals' || a === 'vocal';
-    const isBVocal = b === 'vocals' || b === 'vocal';
-    if (isAVocal && !isBVocal) return -1;
-    if (!isAVocal && isBVocal) return 1;
-    return 0;
-  });
 };
 
 export default function HistoryPage() {
