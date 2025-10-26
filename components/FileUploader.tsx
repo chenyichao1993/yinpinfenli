@@ -20,7 +20,7 @@ const MAX_DURATION = 1200; // 20 minutes
 export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<SeparationType[]>([
-    'vocal',
+    'vocals',
     'drum',
     'bass',
     'electric_guitar',

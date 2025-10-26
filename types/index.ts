@@ -19,18 +19,20 @@ export interface AudioUpload {
 }
 
 export type SeparationType = 
-  | 'vocal' 
+  | 'vocals' 
   | 'drum' 
   | 'bass' 
   | 'electric_guitar' 
-  | 'acoustic_piano';
+  | 'acoustic_piano'
+  | 'others';
 
 export const SEPARATION_TYPES: Record<SeparationType, { label: string; icon: string }> = {
-  vocal: { label: 'Vocals', icon: '🎤' },
+  vocals: { label: 'Vocals', icon: '🎤' },
   drum: { label: 'Drums', icon: '🥁' },
   bass: { label: 'Bass', icon: '🎸' },
   electric_guitar: { label: 'Electric Guitar', icon: '🎸' },
   acoustic_piano: { label: 'Piano', icon: '🎹' },
+  others: { label: 'Others', icon: '🎵' },
 };
 
 export type JobStatus = 'waiting' | 'running' | 'success' | 'failed';
