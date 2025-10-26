@@ -35,6 +35,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Cursor AI chat history (contains sensitive information)
+.specstory/
+.specstory/**
+
 
 
 
