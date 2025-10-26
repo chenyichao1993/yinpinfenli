@@ -63,9 +63,12 @@ export async function GET(
         // If successful, save track URLs
         if (newStatus === 'success' && statusResponse.resultData.downloadUrl) {
           const downloadUrls = statusResponse.resultData.downloadUrl;
+          console.log('Download URLs received:', JSON.stringify(downloadUrls, null, 2));
+          
           const tracks = [];
 
           for (const [type, urls] of Object.entries(downloadUrls)) {
+            console.log(`Processing ${type}:`, urls);
             if (urls && typeof urls === 'object' && 'mp3' in urls && 'wav' in urls) {
               tracks.push({
                 job_id: job.id,
@@ -77,14 +80,25 @@ export async function GET(
             }
           }
 
+          console.log('Tracks to insert:', tracks.length);
+
           if (tracks.length > 0) {
-            const { data: savedTracks } = await supabase
+            const { data: savedTracks, error: trackError } = await supabase
               .from('separated_tracks')
               .insert(tracks)
               .select();
 
-            job.separated_tracks = savedTracks;
+            if (trackError) {
+              console.error('Error saving tracks:', trackError);
+            } else {
+              console.log('Successfully saved tracks:', savedTracks?.length);
+              job.separated_tracks = savedTracks;
+            }
+          } else {
+            console.warn('No tracks to save - check download URL structure');
           }
+        } else {
+          console.log('Job status:', newStatus, 'Has downloadUrl:', !!statusResponse.resultData.downloadUrl);
         }
       }
     }
@@ -98,6 +112,8 @@ export async function GET(
     );
   }
 }
+
+
 
 
 

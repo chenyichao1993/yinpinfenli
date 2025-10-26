@@ -23,13 +23,17 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message);
+      }
 
+      // 成功登录，跳转到上传页面
       router.push('/upload');
       router.refresh();
     } catch (err: any) {
