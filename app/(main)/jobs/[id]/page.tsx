@@ -37,6 +37,17 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; icon: any; variant: any;
   },
 };
 
+// Sort tracks with vocals first
+const sortTracks = (tracks: any[]) => {
+  return [...tracks].sort((a, b) => {
+    const isAVocal = a.track_type === 'vocals' || a.track_type === 'vocal';
+    const isBVocal = b.track_type === 'vocals' || b.track_type === 'vocal';
+    if (isAVocal && !isBVocal) return -1;
+    if (!isAVocal && isBVocal) return 1;
+    return 0;
+  });
+};
+
 export default function JobPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [job, setJob] = useState<SeparationJob | null>(null);
@@ -184,7 +195,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="grid gap-4">
-              {job.separated_tracks.map((track) => (
+              {sortTracks(job.separated_tracks).map((track) => (
                 <AudioPlayer
                   key={track.id}
                   trackType={track.track_type}
