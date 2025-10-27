@@ -92,7 +92,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container py-10 md:py-16 overflow-hidden">
+      <section className="container pt-24 pb-10 md:pt-32 md:pb-16 overflow-hidden">
         <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
           
           {/* AI Badge - 粒子爆炸效果 */}
@@ -116,12 +116,13 @@ export default function LandingPage() {
           
           {/* Title - 模糊向上滑动 */}
           <motion.h1
-            initial={{ y: 0 }}
+            initial={{ y: 0, marginBottom: 24 }}
             animate={{
               y: showUploader ? -80 : 0,
+              marginBottom: showUploader ? 8 : 24,
             }}
             transition={{ duration: 0.7, ease: [0.6, 0.01, 0.05, 0.95] }}
-            className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl leading-tight sm:leading-tight md:leading-tight"
+            className="text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl leading-tight sm:leading-tight md:leading-tight"
             style={{ lineHeight: '1.3' }}
           >
             Split Your Music Into
@@ -186,7 +187,7 @@ export default function LandingPage() {
                     ease: [0.6, 0.01, 0.05, 0.95]
                   }
                 }}
-                className="w-full max-w-4xl mt-8"
+                className="w-full max-w-4xl"
               >
                 <Card className="glass-effect">
                   <CardHeader>
