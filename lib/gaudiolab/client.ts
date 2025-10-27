@@ -68,16 +68,20 @@ export class GaudiolabClient {
 
   /**
    * Create separation job
+   * Note: gsep_music_hq_v1 model always separates all 6 stems regardless of types parameter
    */
   async createJob(
     audioUploadId: string,
     types: SeparationType[]
   ): Promise<GaudiolabJobResponse> {
+    // Always send all types to Gaudiolab (gsep_music_hq_v1 model requirement)
+    const allTypes = 'vocals,drum,bass,electric_guitar,acoustic_piano,others';
+    
     const response = await this.client.post<GaudiolabJobResponse>(
       '/v1/gsep_music_hq_v1/jobs',
       {
         audioUploadId,
-        type: types.join(','),
+        type: allTypes,
       }
     );
     return response.data;

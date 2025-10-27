@@ -38,13 +38,18 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; icon: any; variant: any;
   },
 };
 
-// Sort tracks using unified sort order
-const sortTracks = (tracks: SeparatedTrack[]) => {
-  const trackTypes = tracks.map(t => t.track_type);
+// Sort tracks using unified sort order and filter by user-selected types
+const sortTracks = (tracks: SeparatedTrack[], selectedTypes: string[]) => {
+  // Filter tracks to only include user-selected types
+  const filteredTracks = tracks.filter(track => 
+    selectedTypes.includes(track.track_type)
+  );
+  
+  const trackTypes = filteredTracks.map(t => t.track_type);
   const sortedTypes = sortSeparationTypes(trackTypes);
   
   return sortedTypes.map(type => 
-    tracks.find(t => t.track_type === type)
+    filteredTracks.find(t => t.track_type === type)
   ).filter(Boolean) as SeparatedTrack[];
 };
 
@@ -195,7 +200,7 @@ export default function JobPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="grid gap-4">
-              {sortTracks(job.separated_tracks).map((track) => (
+              {sortTracks(job.separated_tracks, job.separation_types).map((track) => (
                 <AudioPlayer
                   key={track.id}
                   trackType={track.track_type}
