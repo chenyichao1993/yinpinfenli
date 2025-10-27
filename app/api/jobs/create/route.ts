@@ -43,10 +43,8 @@ export async function POST(request: NextRequest) {
     if (uploadError) throw uploadError;
 
     // Create Gaudiolab separation job
-    console.log('Creating job with types:', types);
     const client = new GaudiolabClient();
     const jobResponse = await client.createJob(uploadId, types as SeparationType[]);
-    console.log('Gaudiolab response:', JSON.stringify(jobResponse, null, 2));
 
     if (jobResponse.resultCode !== 1000) {
       throw new Error(jobResponse.resultMessage || 'Failed to create separation job');

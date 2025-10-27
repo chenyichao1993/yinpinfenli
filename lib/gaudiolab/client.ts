@@ -68,25 +68,21 @@ export class GaudiolabClient {
 
   /**
    * Create separation job
-   * Note: gsep_music_hq_v1 model always separates all 6 stems regardless of types parameter
+   * Note: gsep_music_hq_v1 model separates all 6 stems
    */
   async createJob(
     audioUploadId: string,
     types: SeparationType[]
   ): Promise<GaudiolabJobResponse> {
-    // Always send all types to Gaudiolab (gsep_music_hq_v1 model requirement)
-    const allTypes = 'vocals,drum,bass,electric_guitar,acoustic_piano,others';
-    
-    console.log('GaudiolabClient.createJob called with:');
-    console.log('  User selected types:', types);
-    console.log('  Sending to API:', allTypes);
-    console.log('  audioUploadId:', audioUploadId);
+    // Use "vocal" (singular) not "vocals" (plural)
+    // Gaudiolab API expects comma-separated string (NO "others" type!)
+    const typeString = 'vocal,drum,bass,electric_guitar,acoustic_piano';
     
     const response = await this.client.post<GaudiolabJobResponse>(
       '/v1/gsep_music_hq_v1/jobs',
       {
         audioUploadId,
-        type: allTypes,
+        type: typeString,
       }
     );
     return response.data;

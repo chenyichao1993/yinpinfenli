@@ -74,27 +74,28 @@ export async function GET(
             }
           }
           
-          console.log('Download URLs received:', JSON.stringify(downloadUrls, null, 2));
-          
           const tracks = [];
+          const userSelectedTypes = job.separation_types || []; // 用户选择的类型
 
           for (const [type, urls] of Object.entries(downloadUrls)) {
-            console.log(`Processing ${type}:`, urls);
+            // 只处理用户选择的类型
+            if (!userSelectedTypes.includes(type)) {
+              continue;
+            }
+            
             if (urls && typeof urls === 'object' && 'mp3' in urls && 'wav' in urls) {
               tracks.push({
                 job_id: job.id,
                 track_type: type as SeparationType,
                 mp3_url: urls.mp3,
                 wav_url: urls.wav,
-                file_size: 0, // We don't know the size
+                file_size: 0,
               });
             }
           }
 
-          console.log('Tracks to insert:', tracks.length);
-
           if (tracks.length > 0) {
-            const { data: savedTracks, error: trackError } = await supabase
+            const { error: trackError } = await supabase
               .from('separated_tracks')
               .insert(tracks)
               .select();
@@ -102,14 +103,22 @@ export async function GET(
             if (trackError) {
               console.error('Error saving tracks:', trackError);
             } else {
-              console.log('Successfully saved tracks:', savedTracks?.length);
-              job.separated_tracks = savedTracks;
+              // Fetch updated job with tracks
+              const { data: updatedJob } = await supabase
+                .from('separation_jobs')
+                .select(`
+                  *,
+                  audio_upload:audio_uploads(*),
+                  separated_tracks(*)
+                `)
+                .eq('id', job.id)
+                .single();
+              
+              if (updatedJob) {
+                job.separated_tracks = updatedJob.separated_tracks;
+              }
             }
-          } else {
-            console.warn('No tracks to save - check download URL structure');
           }
-        } else {
-          console.log('Job status:', newStatus, 'Has downloadUrl:', !!statusResponse.resultData.downloadUrl);
         }
       }
     }
