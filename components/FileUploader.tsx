@@ -52,6 +52,16 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
 
     setFile(droppedFile);
     setStatus('idle');
+    
+    // Reset to all stems selected when new file is uploaded
+    setSelectedTypes([
+      'vocals',
+      'drum',
+      'bass',
+      'electric_guitar',
+      'acoustic_piano',
+      'others',
+    ]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
