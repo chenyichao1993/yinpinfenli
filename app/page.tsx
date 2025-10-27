@@ -87,7 +87,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container py-20 md:py-32 overflow-hidden">
+      <section className="container py-16 md:py-24 overflow-hidden">
         <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
           
           {/* AI Badge - 粒子爆炸效果 */}
@@ -220,7 +220,7 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section id="features" className="border-t border-border/40 bg-secondary/20">
-        <div className="container py-20 md:py-32">
+        <div className="container py-16 md:py-24">
           <div className="mx-auto max-w-5xl">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4 sm:text-4xl">
@@ -253,7 +253,7 @@ export default function LandingPage() {
 
       {/* How It Works */}
       <section className="border-t border-border/40">
-        <div className="container py-20 md:py-32">
+        <div className="container py-16 md:py-24">
           <div className="mx-auto max-w-5xl">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4 sm:text-4xl">
@@ -297,7 +297,7 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="border-t border-border/40 bg-primary/5">
-        <div className="container py-20 md:py-32">
+        <div className="container py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
             <Shield className="mx-auto h-12 w-12 text-primary mb-6" />
             <h2 className="text-3xl font-bold mb-4 sm:text-4xl">
