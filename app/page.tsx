@@ -1,10 +1,26 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Music, Mic, Drum, Guitar, Piano, Waves, Zap, Shield, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Footer } from '@/components/Footer';
+import { FileUploader } from '@/components/FileUploader';
 
 export default function LandingPage() {
+  const router = useRouter();
+  const [showUploader, setShowUploader] = useState(false);
+
+  const handleStartClick = () => {
+    setShowUploader(true);
+  };
+
+  const handleUploadSuccess = (jobId: string) => {
+    router.push(`/jobs/${jobId}`);
+  };
   const features = [
     {
       icon: Mic,
@@ -71,38 +87,123 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container py-20 md:py-32">
+      <section className="container py-20 md:py-32 overflow-hidden">
         <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
-          <div className="mb-8 inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm">
-            <Zap className="mr-2 h-4 w-4 text-primary" />
-            <span className="text-primary font-medium">AI-Powered Audio Separation</span>
-          </div>
           
-          <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+          {/* AI Badge - 粒子爆炸效果 */}
+          <AnimatePresence>
+            {!showUploader && (
+              <motion.div
+                initial={{ opacity: 1 }}
+                exit={{
+                  opacity: 0,
+                  scale: 0,
+                  filter: 'blur(10px)',
+                  transition: { duration: 0.5, ease: [0.6, 0.01, 0.05, 0.95] }
+                }}
+                className="mb-8 inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm"
+              >
+                <Zap className="mr-2 h-4 w-4 text-primary" />
+                <span className="text-primary font-medium">AI-Powered Audio Separation</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Title - 模糊向上滑动 */}
+          <motion.h1
+            initial={{ y: 0 }}
+            animate={{
+              y: showUploader ? -80 : 0,
+            }}
+            transition={{ duration: 0.7, ease: [0.6, 0.01, 0.05, 0.95] }}
+            className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl"
+          >
             Split Your Music Into
             <span className="gradient-text"> Individual Stems</span>
-          </h1>
+          </motion.h1>
           
-          <p className="mb-10 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            Professional-grade audio stem separation powered by advanced AI. Extract vocals, drums, bass, guitar, and piano from any audio track in minutes.
-          </p>
+          {/* Description - 粒子螺旋飞散 */}
+          <AnimatePresence>
+            {!showUploader && (
+              <motion.p
+                exit={{
+                  opacity: 0,
+                  scale: 0.8,
+                  rotate: 360,
+                  filter: 'blur(10px)',
+                  transition: { duration: 0.6, ease: [0.6, 0.01, 0.05, 0.95] }
+                }}
+                className="mb-10 max-w-2xl text-lg text-muted-foreground sm:text-xl"
+              >
+                Professional-grade audio stem separation powered by advanced AI. Extract vocals, drums, bass, guitar, and piano from any audio track in minutes.
+              </motion.p>
+            )}
+          </AnimatePresence>
           
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <Link href="/register">
-              <Button size="lg" className="gap-2">
-                Start Separating Now
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="#features">
-              <Button size="lg" variant="outline">
-                Learn More
-              </Button>
-            </Link>
-          </div>
+          {/* Buttons - 爆炸效果 */}
+          <AnimatePresence>
+            {!showUploader && (
+              <motion.div
+                exit={{
+                  opacity: 0,
+                  scale: 0,
+                  filter: 'blur(15px)',
+                  transition: { duration: 0.5, ease: [0.6, 0.01, 0.05, 0.95] }
+                }}
+                className="flex flex-col gap-4 sm:flex-row"
+              >
+                <Button size="lg" className="gap-2" onClick={handleStartClick}>
+                  Start Separating Now
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Link href="#features">
+                  <Button size="lg" variant="outline">
+                    Learn More
+                  </Button>
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Upload Section - 从中心展开 */}
+          <AnimatePresence>
+            {showUploader && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0, filter: 'blur(20px)' }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1,
+                  filter: 'blur(0px)',
+                  transition: { 
+                    duration: 0.7,
+                    delay: 0.3,
+                    ease: [0.6, 0.01, 0.05, 0.95]
+                  }
+                }}
+                className="w-full max-w-4xl mt-8"
+              >
+                <Card className="glass-effect">
+                  <CardHeader>
+                    <CardTitle>Upload Audio File</CardTitle>
+                    <CardDescription>
+                      Supported formats: MP3, WAV, FLAC, M4A, MP4 • Max 1GB • Max 20 minutes
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FileUploader onUploadSuccess={handleUploadSuccess} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Stats */}
-          <div className="mt-20 grid grid-cols-2 gap-8 md:grid-cols-4 w-full max-w-3xl">
+          <motion.div
+            initial={{ marginTop: 80 }}
+            animate={{ marginTop: showUploader ? 48 : 80 }}
+            transition={{ duration: 0.7, ease: [0.6, 0.01, 0.05, 0.95] }}
+            className="grid grid-cols-2 gap-8 md:grid-cols-4 w-full max-w-3xl"
+          >
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl font-bold text-primary mb-2">
@@ -113,7 +214,7 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 

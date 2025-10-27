@@ -16,6 +16,7 @@
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "framer-motion": "^12.23.24",
     "howler": "^2.2.4",
     "https-proxy-agent": "^7.0.6",
     "lucide-react": "^0.344.0",
