@@ -1,0 +1,3 @@
+[33m927dacb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 优化首页各section间距：从py-20/py-32缩小到py-16/py-24，使页面更紧凑
+[33m4935c28[m 实现首页粒子爆炸动画效果：点击Start按钮后内容模糊消失，上传区域从中心展开出现；安装framer-motion库
+[33m45e2a57[m 更换Others图标为CD光盘，更显眼

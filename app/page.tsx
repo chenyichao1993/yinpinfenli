@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,11 @@ import { FileUploader } from '@/components/FileUploader';
 export default function LandingPage() {
   const router = useRouter();
   const [showUploader, setShowUploader] = useState(false);
+
+  // 页面加载时滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleStartClick = () => {
     setShowUploader(true);
@@ -87,7 +92,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container py-16 md:py-24 overflow-hidden">
+      <section className="container py-10 md:py-16 overflow-hidden">
         <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
           
           {/* AI Badge - 粒子爆炸效果 */}
@@ -116,7 +121,8 @@ export default function LandingPage() {
               y: showUploader ? -80 : 0,
             }}
             transition={{ duration: 0.7, ease: [0.6, 0.01, 0.05, 0.95] }}
-            className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl"
+            className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl leading-tight sm:leading-tight md:leading-tight"
+            style={{ lineHeight: '1.3' }}
           >
             Split Your Music Into
             <span className="gradient-text"> Individual Stems</span>
@@ -220,7 +226,7 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section id="features" className="border-t border-border/40 bg-secondary/20">
-        <div className="container py-16 md:py-24">
+        <div className="container py-10 md:py-16">
           <div className="mx-auto max-w-5xl">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4 sm:text-4xl">
@@ -253,7 +259,7 @@ export default function LandingPage() {
 
       {/* How It Works */}
       <section className="border-t border-border/40">
-        <div className="container py-16 md:py-24">
+        <div className="container py-10 md:py-16">
           <div className="mx-auto max-w-5xl">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4 sm:text-4xl">
@@ -297,7 +303,7 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="border-t border-border/40 bg-primary/5">
-        <div className="container py-16 md:py-24">
+        <div className="container py-10 md:py-16">
           <div className="mx-auto max-w-3xl text-center">
             <Shield className="mx-auto h-12 w-12 text-primary mb-6" />
             <h2 className="text-3xl font-bold mb-4 sm:text-4xl">
