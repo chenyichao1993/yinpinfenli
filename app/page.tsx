@@ -119,7 +119,7 @@ export default function LandingPage() {
             initial={{ y: 0, marginBottom: 24 }}
             animate={{
               y: showUploader ? -80 : 0,
-              marginBottom: showUploader ? 8 : 24,
+              marginBottom: showUploader ? 2 : 24,
             }}
             transition={{ duration: 0.7, ease: [0.6, 0.01, 0.05, 0.95] }}
             className="text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl leading-tight sm:leading-tight md:leading-tight"
@@ -176,11 +176,12 @@ export default function LandingPage() {
           <AnimatePresence>
             {showUploader && (
               <motion.div
-                initial={{ opacity: 0, scale: 0, filter: 'blur(20px)' }}
+                initial={{ opacity: 0, scale: 0, filter: 'blur(20px)', marginTop: 0 }}
                 animate={{ 
                   opacity: 1, 
                   scale: 1,
                   filter: 'blur(0px)',
+                  marginTop: -48,
                   transition: { 
                     duration: 0.7,
                     delay: 0.3,
