@@ -34,7 +34,7 @@ export const SEPARATION_TYPES: Record<SeparationType, { label: string; icon: str
   bass: { label: 'Bass', icon: '🎸' },
   electric_guitar: { label: 'Electric Guitar', icon: '🎸' },
   acoustic_piano: { label: 'Piano', icon: '🎹' },
-  others: { label: 'Others', icon: '🎵' },
+  others: { label: 'Others', icon: '💿' },
 };
 
 // Unified sort order for all pages
