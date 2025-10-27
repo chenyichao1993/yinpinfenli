@@ -77,6 +77,11 @@ export class GaudiolabClient {
     // Always send all types to Gaudiolab (gsep_music_hq_v1 model requirement)
     const allTypes = 'vocals,drum,bass,electric_guitar,acoustic_piano,others';
     
+    console.log('GaudiolabClient.createJob called with:');
+    console.log('  User selected types:', types);
+    console.log('  Sending to API:', allTypes);
+    console.log('  audioUploadId:', audioUploadId);
+    
     const response = await this.client.post<GaudiolabJobResponse>(
       '/v1/gsep_music_hq_v1/jobs',
       {
