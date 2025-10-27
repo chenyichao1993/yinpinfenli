@@ -25,6 +25,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
     'bass',
     'electric_guitar',
     'acoustic_piano',
+    'others',
   ]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -273,28 +274,30 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {(Object.keys(SEPARATION_TYPES) as SeparationType[]).map((type) => {
-              const info = SEPARATION_TYPES[type];
-              const isSelected = selectedTypes.includes(type);
-              return (
-                <button
-                  key={type}
-                  onClick={() => toggleType(type)}
-                  className={cn(
-                    'flex items-center gap-3 p-4 rounded-lg border-2 transition-all',
-                    isSelected
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  )}
-                >
-                  <span className="text-2xl">{info.icon}</span>
-                  <span className="font-medium">{info.label}</span>
-                  {isSelected && (
-                    <CheckCircle2 className="ml-auto h-5 w-5 text-primary" />
-                  )}
-                </button>
-              );
-            })}
+            {(Object.keys(SEPARATION_TYPES) as SeparationType[])
+              .filter((type) => type !== 'vocal') // Filter out 'vocal' (single) to avoid duplicate with 'vocals'
+              .map((type) => {
+                const info = SEPARATION_TYPES[type];
+                const isSelected = selectedTypes.includes(type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => toggleType(type)}
+                    className={cn(
+                      'flex items-center gap-3 p-4 rounded-lg border-2 transition-all',
+                      isSelected
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <span className="text-2xl">{info.icon}</span>
+                    <span className="font-medium">{info.label}</span>
+                    {isSelected && (
+                      <CheckCircle2 className="ml-auto h-5 w-5 text-primary" />
+                    )}
+                  </button>
+                );
+              })}
           </div>
 
           <Button
