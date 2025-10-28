@@ -157,15 +157,8 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-none text-muted-foreground space-y-2">
               <li><strong>Email:</strong> <a href="mailto:motionjoy93@gmail.com" className="text-primary hover:underline">motionjoy93@gmail.com</a></li>
-              <li><strong>Website:</strong> <a href="/" className="text-primary hover:underline">Stem Splitter</a></li>
             </ul>
           </section>
-
-          <div className="mt-12 pt-8 border-t border-border/40">
-            <p className="text-sm text-muted-foreground text-center">
-              © {currentYear} Stem Splitter. All rights reserved.
-            </p>
-          </div>
         </div>
       </div>
     </div>
