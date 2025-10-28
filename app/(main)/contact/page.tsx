@@ -1,11 +1,7 @@
-import { Metadata } from 'next';
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, MessageSquare, Clock } from 'lucide-react';
-
-export const metadata: Metadata = {
-  title: 'Contact Us - Stem Splitter',
-  description: 'Get in touch with the Stem Splitter team',
-};
 
 export default function ContactPage() {
   return (
