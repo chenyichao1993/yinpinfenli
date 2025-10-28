@@ -36,11 +36,6 @@ export function Footer() {
                   My History
                 </a>
               </li>
-              <li>
-                <a href="#features" className="hover:text-primary transition-colors">
-                  Features
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -49,17 +44,17 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Support</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="#faq" className="hover:text-primary transition-colors">
+                <a href="/faq" className="hover:text-primary transition-colors">
                   FAQ
                 </a>
               </li>
               <li>
-                <a href="#contact" className="hover:text-primary transition-colors">
+                <a href="/contact" className="hover:text-primary transition-colors">
                   Contact
                 </a>
               </li>
               <li>
-                <a href="#privacy" className="hover:text-primary transition-colors">
+                <a href="/privacy" className="hover:text-primary transition-colors">
                   Privacy Policy
                 </a>
               </li>
@@ -69,7 +64,7 @@ export function Footer() {
 
         <div className="mt-8 pt-8 border-t border-border/40">
           <p className="text-center text-sm text-muted-foreground">
-            © {currentYear} Stem Splitter. Powered by Gaudiolab API. All rights reserved.
+            © {currentYear} Stem Splitter. All rights reserved.
           </p>
         </div>
       </div>
