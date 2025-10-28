@@ -33,8 +33,8 @@ export default function LoginPage() {
         throw new Error(error.message);
       }
 
-      // 成功登录，跳转到上传页面
-      router.push('/upload');
+      // 成功登录，跳转到首页
+      router.push('/');
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
