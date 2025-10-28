@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Mic, Drum, Guitar, Piano, Waves, Zap, Shield, ArrowRight } from 'lucide-react';
+import { Mic, Drum, Guitar, Piano, Waves, Zap, Shield, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Footer } from '@/components/Footer';
 import { FileUploader } from '@/components/FileUploader';
+import { Navbar } from '@/components/Navbar';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -69,27 +70,7 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-              <Music className="h-6 w-6 text-primary" />
-            </div>
-            <span className="text-xl font-bold gradient-text">
-              Stem Splitter
-            </span>
-          </Link>
-          
-          <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Get Started</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section */}
       <section className="container pt-24 pb-10 md:pt-32 md:pb-16 overflow-hidden">
