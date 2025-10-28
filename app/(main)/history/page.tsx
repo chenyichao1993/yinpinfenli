@@ -39,6 +39,15 @@ export default function HistoryPage() {
         
         const data = await response.json();
         setJobs(data);
+        
+        // 如果有进行中的任务，5秒后再次检查
+        const hasProcessing = data.some((job: SeparationJob) => 
+          job.status === 'waiting' || job.status === 'running'
+        );
+        
+        if (hasProcessing) {
+          setTimeout(fetchJobs, 5000);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load history');
       } finally {
@@ -47,16 +56,7 @@ export default function HistoryPage() {
     };
 
     fetchJobs();
-
-    // Poll for updates every 10 seconds if there are processing jobs
-    const interval = setInterval(() => {
-      if (jobs.some(job => job.status === 'waiting' || job.status === 'running')) {
-        fetchJobs();
-      }
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [jobs]);
+  }, []);
 
   if (loading) {
     return (
