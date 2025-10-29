@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
+import { isDisposableEmail, getDisposableEmailError } from '@/lib/disposable-emails';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,6 +22,18 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate email format
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // Check for disposable email
+    if (isDisposableEmail(email)) {
+      setError(getDisposableEmailError());
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');

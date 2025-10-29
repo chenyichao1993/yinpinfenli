@@ -1,12 +1,16 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, File, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, File, X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { cn, formatBytes, isValidAudioFormat, validateFileSize } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { formatBytes, isValidAudioFormat, validateFileSize, getAudioDuration, formatDuration } from '@/lib/audio-utils';
+import { getBrowserFingerprint } from '@/lib/fingerprint';
+import { useUser } from '@/hooks/useUser';
 import type { SeparationType } from '@/types';
 import { SEPARATION_TYPES } from '@/types';
 
@@ -16,9 +20,25 @@ interface FileUploaderProps {
 
 const MAX_FILE_SIZE = 1073741824; // 1GB
 const MAX_DURATION = 1200; // 20 minutes
+const FREE_TIER_DURATION_LIMIT = 60; // 1 minute for free users
+
+interface UsageInfo {
+  allowed: boolean;
+  message?: string;
+  remainingUses?: number;
+  totalFreeUses?: number;
+  usedCount?: number;
+  isEmailVerified?: boolean;
+  isPaid?: boolean;
+  requiresAuth?: boolean;
+  requiresVerification?: boolean;
+  requiresUpgrade?: boolean;
+}
 
 export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
+  const { user, loading: userLoading } = useUser();
   const [file, setFile] = useState<File | null>(null);
+  const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<SeparationType[]>([
     'vocals',
     'drum',
@@ -31,37 +51,99 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
+  const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(null);
+  const [checkingUsage, setCheckingUsage] = useState(true);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  // 检查使用配额
+  useEffect(() => {
+    const checkUsageLimits = async () => {
+      setCheckingUsage(true);
+      try {
+        let data: UsageInfo;
+        if (user) {
+          // 登录用户
+          const response = await fetch('/api/usage/check-user');
+          data = await response.json();
+        } else {
+          // 匿名用户
+          const fingerprint = await getBrowserFingerprint();
+          const response = await fetch('/api/usage/check-anonymous', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fingerprint }),
+          });
+          data = await response.json();
+        }
+        setUsageInfo(data);
+      } catch (err) {
+        console.error('Failed to check usage limits:', err);
+        setError('Failed to load usage limits. Please try again.');
+      } finally {
+        setCheckingUsage(false);
+      }
+    };
+
+    if (!userLoading) {
+      checkUsageLimits();
+    }
+  }, [user, userLoading]);
+
+  // 验证音频文件
+  const validateAudioFile = async (file: File) => {
+    try {
+      const duration = await getAudioDuration(file);
+      if (duration > FREE_TIER_DURATION_LIMIT) {
+        return {
+          valid: false,
+          error: `Free users can only upload audio up to 1 minute. Your audio is ${formatDuration(duration)}.`,
+          duration
+        };
+      }
+      return { valid: true, duration };
+    } catch (error) {
+      return {
+        valid: false,
+        error: 'Unable to validate audio file. Please ensure it\'s a valid audio file.',
+        duration: 0
+      };
+    }
+  };
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const droppedFile = acceptedFiles[0];
     if (!droppedFile) return;
 
     setError('');
+    setFile(null);
+    setAudioDuration(null);
 
     // Validate file format
     if (!isValidAudioFormat(droppedFile.name)) {
       setError('Invalid file format. Please upload MP3, WAV, FLAC, M4A, or MP4 files.');
+      setFile(droppedFile);
       return;
     }
 
     // Validate file size
     if (!validateFileSize(droppedFile.size, MAX_FILE_SIZE)) {
       setError(`File size exceeds maximum limit of ${formatBytes(MAX_FILE_SIZE)}.`);
+      setFile(droppedFile);
+      return;
+    }
+
+    // Validate audio duration (for free users)
+    const validation = await validateAudioFile(droppedFile);
+    setAudioDuration(validation.duration || 0);
+
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid audio file');
+      setFile(droppedFile);
       return;
     }
 
     setFile(droppedFile);
     setStatus('idle');
-    
-    // Reset to all stems selected when new file is uploaded
-    setSelectedTypes([
-      'vocals',
-      'drum',
-      'bass',
-      'electric_guitar',
-      'acoustic_piano',
-      'others',
-    ]);
+    setSelectedTypes(['vocals', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others']);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -83,6 +165,24 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
 
   const handleUpload = async () => {
     if (!file || selectedTypes.length === 0) return;
+
+    // Check usage limits before upload
+    if (usageInfo && !usageInfo.allowed) {
+      if (usageInfo.requiresAuth) {
+        setError('You have used your free trial. Please sign up to get 2 more free uses.');
+        return;
+      }
+      if (usageInfo.requiresVerification) {
+        setError('Please verify your email address to use your free quota.');
+        return;
+      }
+      if (usageInfo.requiresUpgrade) {
+        setError('You have used all your free credits. Subscribe to continue using our service.');
+        return;
+      }
+      setError(usageInfo.message || 'Usage limit reached.');
+      return;
+    }
 
     setUploading(true);
     setStatus('uploading');
@@ -142,6 +242,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
       // Step 4: Create separation job
       setProgress(90);
       setStatus('processing');
+      const fingerprint = await getBrowserFingerprint();
       const jobResponse = await fetch('/api/jobs/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,18 +251,23 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
           types: selectedTypes,
           fileName: file.name,
           fileSize: file.size,
+          fingerprint,
+          audioDuration,
         }),
       });
 
-      if (!jobResponse.ok) throw new Error('Failed to create separation job');
+      if (!jobResponse.ok) {
+        const errorData = await jobResponse.json();
+        throw new Error(errorData.error || 'Failed to create separation job');
+      }
       const jobData = await jobResponse.json();
 
       setProgress(100);
       setStatus('success');
-      
+
       // Redirect to job page
       setTimeout(() => {
-        onUploadSuccess(jobData.jobId);
+        onUploadSuccess(jobData.jobId || jobData.gaudiolabJobId);
       }, 1000);
     } catch (err: any) {
       setError(err.message || 'An error occurred during upload');
@@ -173,25 +279,83 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
 
   const removeFile = () => {
     setFile(null);
+    setAudioDuration(null);
     setError('');
     setStatus('idle');
     setProgress(0);
   };
 
+  // 判断是否显示使用限制警告
+  const showUsageLimitWarning = !checkingUsage && usageInfo && !usageInfo.allowed;
+  const showInfoBanner = !checkingUsage && usageInfo && usageInfo.allowed && 
+                         usageInfo.remainingUses !== undefined && 
+                         usageInfo.remainingUses !== Infinity;
+  const disableUpload = uploading || checkingUsage || (usageInfo && !usageInfo.allowed);
+
   return (
     <div className="space-y-6">
+      {/* Usage Info Banner - 显示剩余使用次数 */}
+      {showInfoBanner && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium text-blue-500">
+              {usageInfo!.remainingUses} free {usageInfo!.remainingUses === 1 ? 'use' : 'uses'} remaining
+            </p>
+            <p className="text-muted-foreground mt-1">
+              {usageInfo!.isEmailVerified === false
+                ? 'Please verify your email to use your free quota.'
+                : 'Each audio file must be under 1 minute.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Usage Limit Warning - 配额用完时显示 */}
+      {showUsageLimitWarning && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="text-sm flex-1">
+            <p className="font-medium text-amber-500">
+              {usageInfo!.requiresAuth && 'Free Trial Used'}
+              {usageInfo!.requiresVerification && 'Email Verification Required'}
+              {usageInfo!.requiresUpgrade && 'Free Quota Exhausted'}
+            </p>
+            <p className="text-muted-foreground mt-1">
+              {usageInfo!.message}
+            </p>
+            {usageInfo!.requiresAuth && (
+              <div className="mt-4 flex justify-center gap-3">
+                <Link href="/register">
+                  <Button size="sm" className="bg-primary hover:bg-primary/90">Sign Up for More</Button>
+                </Link>
+                <Link href="/login">
+                  <Button size="sm" variant="outline">Sign In</Button>
+                </Link>
+              </div>
+            )}
+            {usageInfo!.requiresUpgrade && (
+              <p className="mt-3 text-center text-muted-foreground">
+                Paid subscriptions coming soon. Stay tuned!
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Drop Zone */}
-      {!file && (
+      {!file && !showUsageLimitWarning && (
         <div
           {...getRootProps()}
           className={cn(
             'relative border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors',
             isDragActive
               ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary/50 hover:bg-secondary/50'
+              : 'border-border hover:border-primary/50 hover:bg-secondary/50',
+            disableUpload && 'opacity-50 cursor-not-allowed'
           )}
         >
-          <input {...getInputProps()} />
+          <input {...getInputProps()} disabled={disableUpload} />
           <div className="flex flex-col items-center gap-4">
             <div className="rounded-full bg-primary/10 p-4">
               <Upload className="h-8 w-8 text-primary" />
@@ -205,15 +369,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center text-xs text-muted-foreground">
-              <span>MP3</span>
-              <span>•</span>
-              <span>WAV</span>
-              <span>•</span>
-              <span>FLAC</span>
-              <span>•</span>
-              <span>M4A</span>
-              <span>•</span>
-              <span>MP4</span>
+              <span>MP3</span> • <span>WAV</span> • <span>FLAC</span> • <span>M4A</span> • <span>MP4</span>
             </div>
             <p className="text-xs text-muted-foreground">
               Max {formatBytes(MAX_FILE_SIZE)} • Max 20 minutes
@@ -232,7 +388,10 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
               </div>
               <div>
                 <p className="font-medium">{file.name}</p>
-                <p className="text-sm text-muted-foreground">{formatBytes(file.size)}</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatBytes(file.size)}
+                  {audioDuration && ` • ${formatDuration(audioDuration)}`}
+                </p>
               </div>
             </div>
             {!uploading && (
@@ -267,14 +426,51 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-          <AlertCircle className="h-4 w-4" />
-          {error}
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-medium mb-1">Unable to Process</p>
+            <p>{error}</p>
+            
+            {/* 验证错误：显示重新上传按钮 */}
+            {(error.includes('only upload audio up to') ||
+              error.includes('File size exceeds') ||
+              error.includes('Invalid')) && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={removeFile}
+                >
+                  Upload Another File
+                </Button>
+              </div>
+            )}
+
+            {/* 配额错误：显示注册/登录按钮 */}
+            {((error.includes('free trial') ||
+              error.includes('free credits') ||
+              error.includes('Usage limit') ||
+              error.includes('email address')) ||
+              (usageInfo && !usageInfo.allowed)) &&
+              !error.includes('only upload audio up to') &&
+              !error.includes('File size exceeds') &&
+              !error.includes('Invalid') && (
+                <div className="mt-4 flex justify-center gap-3">
+                  <Link href="/register">
+                    <Button size="sm" className="bg-primary hover:bg-primary/90">Sign Up for More</Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button size="sm" variant="outline">Sign In</Button>
+                  </Link>
+                </div>
+              )}
+          </div>
         </div>
       )}
 
       {/* Stem Type Selection */}
-      {file && !uploading && (
+      {file && !uploading && !showUsageLimitWarning && !error && (
         <div className="space-y-4">
           <div>
             <h3 className="font-semibold mb-2">Select Stems to Separate</h3>
@@ -285,7 +481,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {(Object.keys(SEPARATION_TYPES) as SeparationType[])
-              .filter((type) => type !== 'vocal') // Filter out 'vocal' (single) to avoid duplicate with 'vocals'
+              .filter((type) => type !== 'vocal')
               .map((type) => {
                 const info = SEPARATION_TYPES[type];
                 const isSelected = selectedTypes.includes(type);
@@ -323,10 +519,3 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
     </div>
   );
 }
-
-
-
-
-
-
-
