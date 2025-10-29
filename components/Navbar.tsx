@@ -42,7 +42,17 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2 group">
+        <Link 
+          href="/" 
+          className="flex items-center space-x-2 group"
+          onClick={(e) => {
+            // 如果已经在首页，刷新页面以重置状态
+            if (pathname === '/') {
+              e.preventDefault();
+              window.location.href = '/';
+            }
+          }}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
             <Music className="h-6 w-6 text-primary" />
           </div>

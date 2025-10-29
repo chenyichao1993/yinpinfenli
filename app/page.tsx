@@ -15,9 +15,10 @@ export default function LandingPage() {
   const router = useRouter();
   const [showUploader, setShowUploader] = useState(false);
 
-  // 页面加载时滚动到顶部
+  // 页面加载时滚动到顶部并重置状态
   useEffect(() => {
     window.scrollTo(0, 0);
+    setShowUploader(false);
   }, []);
 
   const handleStartClick = () => {
@@ -106,8 +107,8 @@ export default function LandingPage() {
             className="text-4xl font-bold tracking-tight sm:text-6xl md:text-7xl leading-tight sm:leading-tight md:leading-tight"
             style={{ lineHeight: '1.3' }}
           >
-            Split Your Music Into
-            <span className="gradient-text"> Individual Stems</span>
+            Split Your Music Into<br />
+            <span className="gradient-text">Individual Stems</span>
           </motion.h1>
           
           {/* Description - 粒子螺旋飞散 */}
