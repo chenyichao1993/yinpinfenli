@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { GaudiolabClient } from '@/lib/gaudiolab/client';
 import type { SeparationType } from '@/types';
 
@@ -8,6 +9,7 @@ const FREE_TIER_DURATION_LIMIT = 60; // 1 分钟 = 60 秒
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminClient = createAdminClient();
     
     // 检查用户（可选，支持匿名用户）
     const { data: { user } } = await supabase.auth.getUser();
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
       const ipSubnet = ip.split('.').slice(0, 3).join('.');
       const compositeKey = `${fingerprint}_${ipSubnet}`;
 
-      const { data: anonymousUsage } = await supabase
+      const { data: anonymousUsage } = await adminClient
         .from('anonymous_usage')
         .select('*')
         .eq('composite_key', compositeKey)

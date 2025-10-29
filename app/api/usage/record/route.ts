@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * 记录使用（更新配额）
@@ -9,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const adminClient = createAdminClient();
     const { fingerprint, jobId, audioDuration } = await request.json();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -60,11 +62,11 @@ export async function POST(request: NextRequest) {
         });
       }
     } else {
-      // 更新匿名用户使用记录
+      // 更新匿名用户使用记录（使用 admin 客户端）
       const ipSubnet = ip.split('.').slice(0, 3).join('.');
       const compositeKey = `${fingerprint}_${ipSubnet}`;
 
-      const { data: anonymousUsage, error: anonError } = await supabase
+      const { data: anonymousUsage, error: anonError } = await adminClient
         .from('anonymous_usage')
         .select('*')
         .eq('composite_key', compositeKey)
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
 
       if (anonymousUsage) {
         // 增加使用次数
-        await supabase
+        await adminClient
           .from('anonymous_usage')
           .update({ 
             uses_count: anonymousUsage.uses_count + 1,
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
           .eq('composite_key', compositeKey);
       } else {
         // 创建新记录
-        await supabase.from('anonymous_usage').insert({
+        await adminClient.from('anonymous_usage').insert({
           fingerprint,
           ip_address: ip,
           ip_subnet: ipSubnet,
