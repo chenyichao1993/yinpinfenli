@@ -266,8 +266,16 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
       setStatus('success');
 
       // Redirect to job page
+      // 匿名用户：跳转到匿名结果页面（使用 Gaudiolab job ID）
+      // 登录用户：跳转到数据库 job 页面
       setTimeout(() => {
-        onUploadSuccess(jobData.jobId || jobData.gaudiolabJobId);
+        if (jobData.isAnonymous) {
+          // 匿名用户：跳转到匿名结果页面
+          window.location.href = `/jobs/anonymous/${jobData.gaudiolabJobId}`;
+        } else {
+          // 登录用户：跳转到数据库 job 页面
+          onUploadSuccess(jobData.jobId);
+        }
       }, 1000);
     } catch (err: any) {
       setError(err.message || 'An error occurred during upload');
@@ -296,9 +304,9 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
     <div className="space-y-6">
       {/* Usage Info Banner - 显示剩余使用次数 */}
       {showInfoBanner && (
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-          <div className="text-sm">
+        <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
+          <div className="text-sm text-center">
             <p className="font-medium text-blue-500">
               {usageInfo!.remainingUses} free {usageInfo!.remainingUses === 1 ? 'use' : 'uses'} remaining
             </p>

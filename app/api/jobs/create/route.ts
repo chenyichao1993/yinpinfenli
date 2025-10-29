@@ -170,8 +170,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      jobId: job?.id || jobResponse.resultData.jobId,
-      gaudiolabJobId: jobResponse.resultData.jobId
+      jobId: job?.id,
+      gaudiolabJobId: jobResponse.resultData.jobId,
+      isAnonymous: !user
     });
   } catch (error: any) {
     console.error('Error creating job:', error);
