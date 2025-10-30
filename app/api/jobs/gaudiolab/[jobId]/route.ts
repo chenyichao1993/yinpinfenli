@@ -13,6 +13,8 @@ export async function GET(
     const client = new GaudiolabClient();
     const response = await client.getJobStatus(params.jobId);
 
+    console.log('🔍 Gaudiolab API Response:', JSON.stringify(response, null, 2));
+
     if (response.resultCode !== 1000) {
       return NextResponse.json(
         { error: response.resultMessage || 'Failed to fetch job status' },
@@ -21,6 +23,8 @@ export async function GET(
     }
 
     const jobData = response.resultData;
+    console.log('🔍 Job Data:', JSON.stringify(jobData, null, 2));
+    console.log('🔍 Download URL:', JSON.stringify(jobData.downloadUrl, null, 2));
 
     // 映射 Gaudiolab 状态到我们的状态
     let status: 'waiting' | 'running' | 'success' | 'failed';
@@ -55,11 +59,15 @@ export async function GET(
     // 计算进度
     const progress = status === 'success' ? 100 : (status === 'running' ? 50 : 0);
 
-    return NextResponse.json({
+    const result = {
       status,
       tracks,
       progress,
-    });
+    };
+
+    console.log('✅ Final result to return:', JSON.stringify(result, null, 2));
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error('Error fetching Gaudiolab job status:', error);
     return NextResponse.json(

@@ -64,6 +64,9 @@ export default function AnonymousJobPage() {
         if (!response.ok) throw new Error('Failed to fetch job status');
         
         const data = await response.json();
+        console.log('📊 Job data received:', data);
+        console.log('📊 Tracks:', data.tracks);
+        console.log('📊 Tracks length:', data.tracks?.length);
         setJobData(data);
 
         // Continue polling if job is still processing
