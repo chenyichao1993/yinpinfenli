@@ -13,8 +13,6 @@ export async function GET(
     const client = new GaudiolabClient();
     const response = await client.getJobStatus(params.jobId);
 
-    console.log('🔍 Gaudiolab API Response:', JSON.stringify(response, null, 2));
-
     if (response.resultCode !== 1000) {
       return NextResponse.json(
         { error: response.resultMessage || 'Failed to fetch job status' },
@@ -23,8 +21,6 @@ export async function GET(
     }
 
     const jobData = response.resultData;
-    console.log('🔍 Job Data:', JSON.stringify(jobData, null, 2));
-    console.log('🔍 Download URL:', JSON.stringify(jobData.downloadUrl, null, 2));
 
     // 映射 Gaudiolab 状态到我们的状态
     let status: 'waiting' | 'running' | 'success' | 'failed';
@@ -39,35 +35,41 @@ export async function GET(
     }
 
     // 转换 downloadUrl 对象为 tracks 数组
-    // Gaudiolab API 返回格式: { downloadUrl: { vocals: { mp3: "url", wav: "url" }, drums: {...}, ... } }
+    // Gaudiolab API 返回格式: downloadUrl 是一个 JSON 字符串，需要先解析
     const tracks: any[] = [];
-    if (jobData.downloadUrl && typeof jobData.downloadUrl === 'object') {
-      Object.entries(jobData.downloadUrl).forEach(([trackType, urls]: [string, any]) => {
-        if (urls && (urls.mp3 || urls.wav)) {
-          tracks.push({
-            id: `${jobData.jobId}_${trackType}`,
-            track_type: trackType,
-            download_url: urls.mp3 || urls.wav, // 优先使用 mp3
-            preview_url: urls.mp3 || urls.wav,
-            mp3_url: urls.mp3,
-            wav_url: urls.wav,
-          });
-        }
-      });
+    if (jobData.downloadUrl) {
+      try {
+        // 如果是字符串，先解析成对象
+        const downloadUrlObj = typeof jobData.downloadUrl === 'string' 
+          ? JSON.parse(jobData.downloadUrl) 
+          : jobData.downloadUrl;
+        
+        // 遍历每个音轨类型
+        Object.entries(downloadUrlObj).forEach(([trackType, urls]: [string, any]) => {
+          if (urls && (urls.mp3 || urls.wav)) {
+            tracks.push({
+              id: `${jobData.jobId}_${trackType}`,
+              track_type: trackType,
+              download_url: urls.mp3 || urls.wav, // 优先使用 mp3
+              preview_url: urls.mp3 || urls.wav,
+              mp3_url: urls.mp3,
+              wav_url: urls.wav,
+            });
+          }
+        });
+      } catch (error) {
+        console.error('❌ Error parsing downloadUrl:', error);
+      }
     }
 
     // 计算进度
     const progress = status === 'success' ? 100 : (status === 'running' ? 50 : 0);
 
-    const result = {
+    return NextResponse.json({
       status,
       tracks,
       progress,
-    };
-
-    console.log('✅ Final result to return:', JSON.stringify(result, null, 2));
-
-    return NextResponse.json(result);
+    });
   } catch (error: any) {
     console.error('Error fetching Gaudiolab job status:', error);
     return NextResponse.json(

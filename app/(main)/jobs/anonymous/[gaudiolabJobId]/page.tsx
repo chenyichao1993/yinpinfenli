@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AudioPlayer } from '@/components/AudioPlayer';
-import { Clock, CheckCircle2, AlertCircle, Loader2, Music, Download, UserPlus } from 'lucide-react';
-import type { SeparatedTrack } from '@/types';
+import { Clock, CheckCircle2, AlertCircle, Loader2, Music, UserPlus } from 'lucide-react';
+import type { SeparatedTrack, SeparationType } from '@/types';
 import { SEPARATION_TYPES, sortSeparationTypes } from '@/types';
 
 type JobStatus = 'waiting' | 'running' | 'success' | 'failed';
@@ -64,9 +64,6 @@ export default function AnonymousJobPage() {
         if (!response.ok) throw new Error('Failed to fetch job status');
         
         const data = await response.json();
-        console.log('📊 Job data received:', data);
-        console.log('📊 Tracks:', data.tracks);
-        console.log('📊 Tracks length:', data.tracks?.length);
         setJobData(data);
 
         // Continue polling if job is still processing
@@ -127,20 +124,20 @@ export default function AnonymousJobPage() {
     <div className="container py-12 md:py-20">
       <div className="mx-auto max-w-4xl">
         {/* Sign Up Banner for Anonymous Users */}
-        <Card className="glass-effect mb-8 border-blue-500/20 bg-blue-500/5">
+        <Card className="glass-effect mb-8 border-primary/20 bg-primary/5">
           <CardContent className="pt-6 pb-6">
             <div className="flex items-start gap-4">
-              <div className="rounded-lg bg-blue-500/10 p-3">
-                <UserPlus className="h-6 w-6 text-blue-500" />
+              <div className="rounded-lg bg-primary/10 p-3">
+                <UserPlus className="h-6 w-6 text-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold mb-2">Want to save your results?</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Sign up now to save your separation history and get <span className="font-semibold text-blue-500">2 more free uses</span>!
+                  Sign up now to save your separation history and get <span className="font-semibold text-primary">2 more free uses</span>!
                 </p>
                 <div className="flex gap-3">
                   <Link href="/register">
-                    <Button className="bg-blue-500 hover:bg-blue-600">
+                    <Button>
                       Sign Up for Free
                     </Button>
                   </Link>
@@ -200,53 +197,25 @@ export default function AnonymousJobPage() {
         {/* Completed - Show Results */}
         {jobData.status === 'success' && sortedTracks.length > 0 && (
           <>
-            <Card className="glass-effect mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  Separation Complete
-                </CardTitle>
-                <CardDescription>
-                  Your audio has been successfully separated into individual stems
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
             {/* Separated Tracks */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Separated Stems</h2>
-              {sortedTracks.map((track) => {
-                const typeInfo = SEPARATION_TYPES[track.track_type as keyof typeof SEPARATION_TYPES];
-                return (
-                  <Card key={track.id} className="glass-effect">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="text-3xl">{typeInfo?.icon || '🎵'}</div>
-                          <div>
-                            <CardTitle className="text-lg">{typeInfo?.label || track.track_type}</CardTitle>
-                            <CardDescription>{typeInfo?.description || `${track.track_type} track`}</CardDescription>
-                          </div>
-                        </div>
-                        <a 
-                          href={track.download_url} 
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
-                        </a>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <AudioPlayer src={track.preview_url} />
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Separated Stems</h2>
+                <p className="text-muted-foreground">
+                  Your audio has been successfully separated. Preview and download each stem below.
+                </p>
+              </div>
+
+              <div className="grid gap-4">
+                {sortedTracks.map((track) => (
+                  <AudioPlayer
+                    key={track.id}
+                    trackType={track.track_type as SeparationType}
+                    mp3Url={track.mp3_url || track.download_url}
+                    wavUrl={track.wav_url || track.download_url}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* Call to Action */}
