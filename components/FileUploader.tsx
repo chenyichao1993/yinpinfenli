@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, File, X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -37,6 +37,7 @@ interface UsageInfo {
 
 export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   const { user, loading: userLoading } = useUser();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<SeparationType[]>([
@@ -293,6 +294,15 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
     setProgress(0);
   };
 
+  // 移除文件并打开文件选择器
+  const removeFileAndSelectNew = () => {
+    removeFile();
+    // 触发文件选择器
+    setTimeout(() => {
+      fileInputRef.current?.click();
+    }, 100);
+  };
+
   // 判断是否显示使用限制警告
   const showUsageLimitWarning = !checkingUsage && usageInfo && !usageInfo.allowed;
   const showInfoBanner = !checkingUsage && usageInfo && usageInfo.allowed && 
@@ -382,7 +392,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
             disableUpload && 'opacity-50 cursor-not-allowed'
           )}
         >
-          <input {...getInputProps()} disabled={disableUpload} />
+          <input {...getInputProps()} ref={fileInputRef} disabled={disableUpload} />
           <div className="flex flex-col items-center gap-4">
             <div className="rounded-full bg-primary/10 p-4">
               <Upload className="h-8 w-8 text-primary" />
@@ -467,7 +477,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
                 <Button
                   size="sm"
                   className="bg-primary hover:bg-primary/90"
-                  onClick={removeFile}
+                  onClick={removeFileAndSelectNew}
                 >
                   Upload Another File
                 </Button>
