@@ -12,9 +12,13 @@ export async function middleware(req: NextRequest) {
 
   // Protect authenticated routes
   const protectedPaths = ['/upload', '/history', '/jobs'];
+  
+  // 排除匿名结果页面（不需要登录）
+  const isAnonymousJobPage = req.nextUrl.pathname.startsWith('/jobs/anonymous');
   const isProtectedPath = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path));
 
-  if (isProtectedPath && !session) {
+  // 只有非匿名页面才需要登录
+  if (isProtectedPath && !isAnonymousJobPage && !session) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
     redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
