@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { proxyFetch } from '@/lib/supabase/proxy-fetch';
+import { isEmailAllowed } from '@/lib/disposable-emails';
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password, username } = await request.json();
+    const allow = isEmailAllowed(email);
+    if (!allow.ok) {
+      return NextResponse.json({ error: allow.reason }, { status: 400 });
+    }
     const cookieStore = cookies();
     const response = NextResponse.json({ success: true });
 

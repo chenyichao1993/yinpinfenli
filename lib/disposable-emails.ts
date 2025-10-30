@@ -688,6 +688,15 @@ export function isDisposableEmail(email: string): boolean {
     return false;
   }
 
+  // 环境变量例外列表（对硬编码一次性域中的误伤域进行豁免）
+  const exceptions = (process.env.EMAIL_DISPOSABLE_EXCEPTIONS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (exceptions.includes(domain)) {
+    return false;
+  }
+
   return DISPOSABLE_DOMAINS.includes(domain);
 }
 
@@ -696,5 +705,48 @@ export function isDisposableEmail(email: string): boolean {
  */
 export function getDisposableEmailError(): string {
   return 'Temporary email addresses are not allowed. Please use a permanent email address.';
+}
+
+/**
+ * 基础邮箱格式校验
+ */
+export function validateEmailFormat(email: string): boolean {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+}
+
+/**
+ * 统一邮箱许可判断：先白名单，再黑名单，再一次性邮箱检测
+ */
+export function isEmailAllowed(email: string): { ok: boolean; reason?: string } {
+  if (!validateEmailFormat(email)) {
+    return { ok: false, reason: 'Invalid email format' };
+  }
+  const domain = email.split('@')[1]?.toLowerCase().trim();
+  if (!domain) {
+    return { ok: false, reason: 'Invalid email domain' };
+  }
+
+  const allow = (process.env.EMAIL_DOMAIN_ALLOWLIST || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const block = (process.env.EMAIL_DOMAIN_BLOCKLIST || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (allow.length > 0 && !allow.includes(domain)) {
+    return { ok: false, reason: 'Email domain is not allowed' };
+  }
+
+  if (block.includes(domain)) {
+    return { ok: false, reason: 'Email domain is blocked' };
+  }
+
+  if (isDisposableEmail(email)) {
+    return { ok: false, reason: getDisposableEmailError() };
+  }
+
+  return { ok: true };
 }
 

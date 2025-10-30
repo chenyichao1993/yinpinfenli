@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
-import { isDisposableEmail, getDisposableEmailError } from '@/lib/disposable-emails';
+import { isDisposableEmail, getDisposableEmailError, validateEmailFormat } from '@/lib/disposable-emails';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function RegisterPage() {
     setError('');
 
     // Validate email format
-    if (!email || !email.includes('@')) {
+    if (!validateEmailFormat(email)) {
       setError('Please enter a valid email address');
       return;
     }
