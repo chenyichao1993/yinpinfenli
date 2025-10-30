@@ -298,7 +298,8 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   const showInfoBanner = !checkingUsage && usageInfo && usageInfo.allowed && 
                          usageInfo.remainingUses !== undefined && 
                          usageInfo.remainingUses !== Infinity;
-  const disableUpload = uploading || checkingUsage || (usageInfo && !usageInfo.allowed);
+  // 只有正在上传或配额已用完时才禁用上传（不在加载配额时禁用）
+  const disableUpload = uploading || (!checkingUsage && usageInfo && !usageInfo.allowed);
 
   return (
     <div className="space-y-6">
@@ -307,14 +308,32 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
         <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
           <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
           <div className="text-sm text-center">
-            <p className="font-medium text-blue-500">
-              {usageInfo!.remainingUses} free {usageInfo!.remainingUses === 1 ? 'use' : 'uses'} remaining
-            </p>
-            <p className="text-muted-foreground mt-1">
-              {usageInfo!.isEmailVerified === false
-                ? 'Please verify your email to use your free quota.'
-                : 'Each audio file must be under 1 minute.'}
-            </p>
+            {user ? (
+              // 登录用户
+              <>
+                <p className="font-medium text-blue-500">
+                  ✨ You have {usageInfo!.remainingUses} free {usageInfo!.remainingUses === 1 ? 'use' : 'uses'} remaining
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {usageInfo!.isEmailVerified === false
+                    ? 'Please verify your email to activate your free quota.'
+                    : 'Each audio up to 1 minute'}
+                </p>
+              </>
+            ) : (
+              // 匿名用户
+              <>
+                <p className="font-medium text-blue-500">
+                  🎁 Free Trial: {usageInfo!.remainingUses} use (1 min limit)
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  <Link href="/register" className="text-blue-500 hover:underline font-medium">
+                    Sign up
+                  </Link>
+                  {' '}to get 2 more free uses!
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}
