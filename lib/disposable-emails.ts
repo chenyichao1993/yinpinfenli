@@ -420,7 +420,6 @@ const DISPOSABLE_DOMAINS = [
   'prtnx.com',
   'putthisinyourspamdatabase.com',
   'pwrby.com',
-  'qq.com',
   'quickinbox.com',
   'quickmail.nl',
   'rcpt.at',
