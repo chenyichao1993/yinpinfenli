@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, File, X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -37,7 +37,6 @@ interface UsageInfo {
 
 export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   const { user, loading: userLoading } = useUser();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<SeparationType[]>([
@@ -147,7 +146,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
     setSelectedTypes(['vocals', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others']);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: {
       'audio/*': ['.mp3', '.wav', '.flac', '.m4a'],
@@ -297,9 +296,9 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   // 移除文件并打开文件选择器
   const removeFileAndSelectNew = () => {
     removeFile();
-    // 触发文件选择器
+    // 使用 react-dropzone 的 open 方法触发文件选择器
     setTimeout(() => {
-      fileInputRef.current?.click();
+      open();
     }, 100);
   };
 
@@ -392,7 +391,7 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
             disableUpload && 'opacity-50 cursor-not-allowed'
           )}
         >
-          <input {...getInputProps()} ref={fileInputRef} disabled={disableUpload} />
+          <input {...getInputProps()} disabled={disableUpload} />
           <div className="flex flex-col items-center gap-4">
             <div className="rounded-full bg-primary/10 p-4">
               <Upload className="h-8 w-8 text-primary" />
