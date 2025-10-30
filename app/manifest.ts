@@ -9,18 +9,10 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     background_color: '#0a0a0a',
     theme_color: '#10b981',
-    icons: [
-      {
-        src: '/icon-192.png',
-        sizes: '192x192',
-        type: 'image/png',
-      },
-      {
-        src: '/icon-512.png',
-        sizes: '512x512',
-        type: 'image/png',
-      },
-    ],
+    // NOTE: 临时移除 icons，避免在缺少资源时产生 404。
+    // 提供以下文件后再恢复：
+    // public/icon-192.png (192x192 PNG)
+    // public/icon-512.png (512x512 PNG)
   };
 }
 
