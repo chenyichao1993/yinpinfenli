@@ -131,45 +131,50 @@ export async function POST(request: NextRequest) {
       const ipSubnet = ip.split('.').slice(0, 3).join('.');
       const compositeKey = `${fingerprint}_${ipSubnet}`;
 
-      // 检查匿名用户使用记录
-      const { data: anonymousUsage, error: anonUsageError } = await adminClient
+      // 检查匿名用户使用记录（基于 IP 子网，不依赖浏览器指纹）
+      // 查询同一 IP 子网的所有记录，只要有任何一条已使用过，就阻止
+      const { data: allAnonymousUsage, error: anonUsageError } = await adminClient
         .from('anonymous_usage')
         .select('*')
-        .eq('composite_key', compositeKey)
-        .single();
+        .eq('ip_subnet', ipSubnet);
 
-      // 如果查询出错（除了"未找到记录"），记录错误
-      if (anonUsageError && anonUsageError.code !== 'PGRST116') {
+      // 如果查询出错，记录错误并拒绝请求
+      if (anonUsageError) {
         console.error('Error checking anonymous usage:', anonUsageError);
-        // 如果查询失败，为安全起见拒绝请求
         return NextResponse.json(
           { error: 'Failed to check usage limit. Please try again.' },
           { status: 500 }
         );
       }
 
-      // 检查是否已使用（uses_count >= 1 表示已使用过）
-      if (anonymousUsage && anonymousUsage.uses_count >= 1) {
-        console.log(`Anonymous user limit reached: compositeKey=${compositeKey}, uses_count=${anonymousUsage.uses_count}`);
-        return NextResponse.json(
-          { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
-          { status: 403 }
-        );
+      // 检查同一 IP 是否有任何记录已使用过（uses_count >= 1）
+      if (allAnonymousUsage && allAnonymousUsage.length > 0) {
+        const hasUsed = allAnonymousUsage.some(u => u.uses_count >= 1);
+        if (hasUsed) {
+          console.log(`Anonymous user limit reached: IP subnet ${ipSubnet} has already been used (found ${allAnonymousUsage.length} records)`);
+          return NextResponse.json(
+            { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
+            { status: 403 }
+          );
+        }
       }
 
-      console.log(`Anonymous user check passed: compositeKey=${compositeKey}, uses_count=${anonymousUsage?.uses_count || 0}`);
+      console.log(`Anonymous user check passed: IP subnet=${ipSubnet}, existing records=${allAnonymousUsage?.length || 0}`);
 
       // 立即记录本次使用（原子操作，防止并发绕过限制）
-      // 使用数据库的原子操作来确保一致性
-      if (anonymousUsage) {
-        // 如果记录已存在，说明这是并发请求或逻辑错误（不应该到这里）
-        console.error(`Unexpected: anonymousUsage exists but was not caught: compositeKey=${compositeKey}, uses_count=${anonymousUsage.uses_count}`);
+      // 检查是否已存在相同的 compositeKey（同一浏览器+IP组合）
+      const existingRecord = allAnonymousUsage?.find(u => u.composite_key === compositeKey);
+      
+      if (existingRecord) {
+        // 如果已存在相同 compositeKey 的记录，说明这是并发请求或逻辑错误（不应该到这里）
+        console.error(`Unexpected: Record exists for compositeKey=${compositeKey}, uses_count=${existingRecord.uses_count}`);
         return NextResponse.json(
           { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
           { status: 403 }
         );
       } else {
-        // 如果记录不存在，创建新记录（uses_count = 1）
+        // 创建新记录（uses_count = 1）
+        // 注意：即使检查时基于 IP，我们仍然保存 fingerprint 和 compositeKey（用于分析和向后兼容）
         const { data: insertedRecord, error: insertError } = await adminClient
           .from('anonymous_usage')
           .insert({
@@ -183,15 +188,14 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (insertError) {
-          // 如果插入失败（可能是并发导致的重复键），再次检查
-          console.log(`Insert failed (possibly concurrent), rechecking: ${insertError.message}`);
-          const { data: recheckUsage, error: recheckError } = await adminClient
+          // 如果插入失败（可能是并发导致的重复键），再次检查 IP 限制
+          console.log(`Insert failed (possibly concurrent), rechecking IP limit: ${insertError.message}`);
+          const { data: recheckAllUsage, error: recheckError } = await adminClient
             .from('anonymous_usage')
             .select('*')
-            .eq('composite_key', compositeKey)
-            .single();
+            .eq('ip_subnet', ipSubnet);
 
-          if (recheckError && recheckError.code !== 'PGRST116') {
+          if (recheckError) {
             console.error('Recheck error:', recheckError);
             return NextResponse.json(
               { error: 'Failed to check usage limit. Please try again.' },
@@ -199,23 +203,24 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          if (recheckUsage && recheckUsage.uses_count >= 1) {
-            console.log(`Recheck found usage: compositeKey=${compositeKey}, uses_count=${recheckUsage.uses_count}`);
+          // 再次检查同一 IP 是否有任何记录已使用过
+          if (recheckAllUsage && recheckAllUsage.some(u => u.uses_count >= 1)) {
+            console.log(`Recheck found usage: IP subnet ${ipSubnet} has already been used`);
             return NextResponse.json(
               { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
               { status: 403 }
             );
           }
 
-          // 如果重新检查后仍然没有记录，可能是数据库错误，拒绝请求以保安全
-          console.error('Insert failed and recheck found no record - possible database issue');
+          // 如果重新检查后仍然没有使用记录，可能是数据库错误，拒绝请求以保安全
+          console.error('Insert failed and recheck found no usage - possible database issue');
           return NextResponse.json(
             { error: 'Failed to record usage. Please try again.' },
             { status: 500 }
           );
         }
 
-        console.log(`Anonymous usage recorded: compositeKey=${compositeKey}, uses_count=1`);
+        console.log(`Anonymous usage recorded: IP subnet=${ipSubnet}, fingerprint=${fingerprint.substring(0, 8)}..., uses_count=1`);
       }
 
       // 检查全局免费额度上限（30天内最多3次，IP/设备指纹）
