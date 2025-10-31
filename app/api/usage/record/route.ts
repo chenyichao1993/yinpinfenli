@@ -52,6 +52,42 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('user_id', user.id);
+
+        // 更新全局额度追踪（仅非付费用户）
+        if (!quota.is_paid) {
+          const globalCompositeKey = fingerprint 
+            ? `${ip}_${fingerprint}` 
+            : `${ip}_user_${user.id}`;
+
+          const { data: globalQuota, error: globalQuotaError } = await adminClient
+            .from('global_quota_tracking')
+            .select('*')
+            .eq('composite_key', globalCompositeKey)
+            .single();
+
+          if (globalQuotaError && globalQuotaError.code !== 'PGRST116') {
+            console.error('Error checking global quota tracking:', globalQuotaError);
+          } else if (globalQuota) {
+            // 更新现有记录
+            await adminClient
+              .from('global_quota_tracking')
+              .update({
+                uses_count: globalQuota.uses_count + 1,
+                last_used_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('composite_key', globalCompositeKey);
+          } else {
+            // 创建新记录
+            await adminClient.from('global_quota_tracking').insert({
+              ip_address: ip,
+              fingerprint: fingerprint || `user_${user.id}`,
+              composite_key: globalCompositeKey,
+              uses_count: 1,
+              last_used_at: new Date().toISOString(),
+            });
+          }
+        }
       } else {
         // 如果配额不存在，创建一个并标记已使用 1 次
         await supabase.from('user_quotas').insert({
@@ -93,6 +129,37 @@ export async function POST(request: NextRequest) {
           ip_subnet: ipSubnet,
           composite_key: compositeKey,
           uses_count: 1,
+        });
+      }
+
+      // 更新全局额度追踪（匿名用户）
+      const globalCompositeKey = `${ip}_${fingerprint}`;
+      const { data: globalQuota, error: globalQuotaError } = await adminClient
+        .from('global_quota_tracking')
+        .select('*')
+        .eq('composite_key', globalCompositeKey)
+        .single();
+
+      if (globalQuotaError && globalQuotaError.code !== 'PGRST116') {
+        console.error('Error checking global quota tracking for anonymous:', globalQuotaError);
+      } else if (globalQuota) {
+        // 更新现有记录
+        await adminClient
+          .from('global_quota_tracking')
+          .update({
+            uses_count: globalQuota.uses_count + 1,
+            last_used_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('composite_key', globalCompositeKey);
+      } else {
+        // 创建新记录
+        await adminClient.from('global_quota_tracking').insert({
+          ip_address: ip,
+          fingerprint: fingerprint,
+          composite_key: globalCompositeKey,
+          uses_count: 1,
+          last_used_at: new Date().toISOString(),
         });
       }
     }

@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     // 计算剩余次数
     const remainingUses = quota.total_free_uses - quota.used_count;
 
-    // 检查邮箱是否验证
+    // 强制邮箱验证：未验证邮箱无法使用功能
     if (!quota.is_email_verified && !user.email_confirmed_at) {
       return NextResponse.json({
         allowed: false,

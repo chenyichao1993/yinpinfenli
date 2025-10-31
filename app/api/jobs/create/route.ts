@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 获取 IP 地址
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+               request.headers.get('x-real-ip') ||
+               request.ip ||
+               'unknown';
+
     // 检查使用配额
     if (user) {
       // 登录用户：检查用户配额
@@ -48,7 +54,7 @@ export async function POST(request: NextRequest) {
       if (quota) {
         const remainingUses = quota.total_free_uses - quota.used_count;
 
-        // 检查邮箱验证
+        // 检查邮箱验证（强制）
         if (!quota.is_email_verified) {
           return NextResponse.json(
             { error: 'Please verify your email address to use your free quota.' },
@@ -56,12 +62,48 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // 检查配额（非付费用户）
-        if (!quota.is_paid && remainingUses <= 0) {
-          return NextResponse.json(
-            { error: 'You have used all your free credits. Subscribe to continue using our service.' },
-            { status: 403 }
-          );
+        // 付费用户不受全局额度限制
+        if (!quota.is_paid) {
+          // 检查配额（非付费用户）
+          if (remainingUses <= 0) {
+            return NextResponse.json(
+              { error: 'You have used all your free credits. Subscribe to continue using our service.' },
+              { status: 403 }
+            );
+          }
+
+          // 检查全局免费额度上限（30天内最多3次，IP/设备指纹）
+          const globalCompositeKey = fingerprint 
+            ? `${ip}_${fingerprint}` 
+            : `${ip}_user_${user.id}`;
+          
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const { data: globalQuota, error: globalQuotaError } = await adminClient
+            .from('global_quota_tracking')
+            .select('*')
+            .eq('composite_key', globalCompositeKey)
+            .single();
+
+          if (globalQuotaError && globalQuotaError.code !== 'PGRST116') {
+            console.error('Error checking global quota:', globalQuotaError);
+          } else if (globalQuota) {
+            // 如果最后使用时间超过30天，重置计数
+            if (new Date(globalQuota.last_used_at) < new Date(thirtyDaysAgo)) {
+              // 重置为0（但保留记录）
+              await adminClient
+                .from('global_quota_tracking')
+                .update({
+                  uses_count: 0,
+                  last_used_at: new Date().toISOString(),
+                })
+                .eq('composite_key', globalCompositeKey);
+            } else if (globalQuota.uses_count >= 3) {
+              return NextResponse.json(
+                { error: 'You have reached the global free quota limit (3 uses per 30 days from this IP/device). Subscribe to continue using our service.' },
+                { status: 403 }
+              );
+            }
+          }
         }
       } else {
         // 配额记录不存在，创建一个（触发器应该会自动创建，但作为兜底）
@@ -86,12 +128,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                 request.headers.get('x-real-ip') ||
-                 'unknown';
       const ipSubnet = ip.split('.').slice(0, 3).join('.');
       const compositeKey = `${fingerprint}_${ipSubnet}`;
 
+      // 检查匿名用户使用记录
       const { data: anonymousUsage } = await adminClient
         .from('anonymous_usage')
         .select('*')
@@ -103,6 +143,36 @@ export async function POST(request: NextRequest) {
           { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
           { status: 403 }
         );
+      }
+
+      // 检查全局免费额度上限（30天内最多3次，IP/设备指纹）
+      const globalCompositeKey = `${ip}_${fingerprint}`;
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: globalQuota, error: globalQuotaError } = await adminClient
+        .from('global_quota_tracking')
+        .select('*')
+        .eq('composite_key', globalCompositeKey)
+        .single();
+
+      if (globalQuotaError && globalQuotaError.code !== 'PGRST116') {
+        console.error('Error checking global quota for anonymous user:', globalQuotaError);
+      } else if (globalQuota) {
+        // 如果最后使用时间超过30天，重置计数
+        if (new Date(globalQuota.last_used_at) < new Date(thirtyDaysAgo)) {
+          // 重置为0（但保留记录）
+          await adminClient
+            .from('global_quota_tracking')
+            .update({
+              uses_count: 0,
+              last_used_at: new Date().toISOString(),
+            })
+            .eq('composite_key', globalCompositeKey);
+        } else if (globalQuota.uses_count >= 3) {
+          return NextResponse.json(
+            { error: 'You have reached the global free quota limit (3 uses per 30 days from this IP/device). Please sign up to continue using our service.' },
+            { status: 403 }
+          );
+        }
       }
     }
 
