@@ -16,7 +16,7 @@ import {
   History as HistoryIcon
 } from 'lucide-react';
 import { formatDate, formatBytes } from '@/lib/utils';
-import type { SeparationJob, JobStatus } from '@/types';
+import type { SeparationJob, JobStatus, SeparationType } from '@/types';
 import { SEPARATION_TYPES, sortSeparationTypes } from '@/types';
 
 const STATUS_CONFIG: Record<JobStatus, { label: string; variant: any; icon: any }> = {
@@ -158,7 +158,7 @@ export default function HistoryPage() {
                           {/* Stems */}
                           <div className="flex flex-wrap gap-2 mt-3">
                             {sortSeparationTypes(job.separation_types).map((type) => {
-                              const typeInfo = SEPARATION_TYPES[type];
+                              const typeInfo = SEPARATION_TYPES[type as SeparationType];
                               if (!typeInfo) return null; // Skip unknown types
                               
                               return (
