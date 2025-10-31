@@ -16,7 +16,7 @@ export default function ContactPage() {
             Contact Us
           </h1>
           <p className="text-lg text-muted-foreground">
-            We'd love to hear from you. Get in touch with our team.
+            We&apos;d love to hear from you. Get in touch with our team.
           </p>
         </div>
 
@@ -29,7 +29,7 @@ export default function ContactPage() {
               </div>
               <CardTitle>Email Us</CardTitle>
               <CardDescription>
-                Send us an email and we'll respond as soon as possible
+                Send us an email and we&apos;ll respond as soon as possible
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -66,7 +66,7 @@ export default function ContactPage() {
           <CardHeader>
             <CardTitle>Send us a Message</CardTitle>
             <CardDescription>
-              Fill out the form below and we'll get back to you shortly
+              Fill out the form below and we&apos;ll get back to you shortly
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -143,7 +143,7 @@ export default function ContactPage() {
         {/* Additional Info */}
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            For urgent issues, please include "[URGENT]" in your email subject line.
+            For urgent issues, please include &quot;[URGENT]&quot; in your email subject line.
           </p>
         </div>
       </div>

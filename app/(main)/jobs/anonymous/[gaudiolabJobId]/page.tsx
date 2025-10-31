@@ -280,7 +280,7 @@ export default function AnonymousJobPage() {
               <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">Processing Failed</h2>
               <p className="text-muted-foreground mb-4">
-                Sorry, we couldn't process your audio file. Please try again with a different file.
+                Sorry, we couldn&apos;t process your audio file. Please try again with a different file.
               </p>
               <Link href="/">
                 <Button>Try Again</Button>

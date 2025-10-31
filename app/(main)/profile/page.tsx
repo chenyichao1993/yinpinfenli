@@ -35,7 +35,7 @@ export default function ProfilePage() {
           <CardContent>
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">
-                We're working on bringing you a comprehensive profile management system.
+                We&apos;re working on bringing you a comprehensive profile management system.
               </p>
               <p className="text-sm text-muted-foreground">
                 Features will include:

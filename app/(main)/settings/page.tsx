@@ -35,7 +35,7 @@ export default function SettingsPage() {
           <CardContent>
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">
-                We're working on bringing you comprehensive settings to customize your experience.
+                We&apos;re working on bringing you comprehensive settings to customize your experience.
               </p>
               <p className="text-sm text-muted-foreground">
                 Features will include:
