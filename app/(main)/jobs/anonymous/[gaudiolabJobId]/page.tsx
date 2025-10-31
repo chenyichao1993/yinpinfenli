@@ -127,7 +127,11 @@ export default function AnonymousJobPage() {
   const sortedTracks = jobData.tracks ? sortSeparationTypes(jobData.tracks.map(t => t.track_type))
     .map(type => jobData.tracks!.find(t => t.track_type === type))
     .filter(Boolean)
-    .filter(track => {
+    .filter((track): track is SeparatedTrack => {
+      // TypeScript 类型守卫：确保 track 不是 undefined
+      // 虽然 .filter(Boolean) 已经过滤了，但 TypeScript 需要这个检查来推断类型
+      if (!track) return false;
+      
       // 如果用户选择了 types，只显示用户选择的音轨
       if (selectedTypes.length > 0) {
         // 映射 API 返回的类型到前端类型
@@ -155,7 +159,7 @@ export default function AnonymousJobPage() {
       }
       // 如果用户没有选择，显示所有音轨（向后兼容）
       return true;
-    }) as SeparatedTrack[] : [];
+    }) : [];
 
   return (
     <div className="container py-12 md:py-20">
