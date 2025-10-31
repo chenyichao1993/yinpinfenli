@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
         data: {
           username: username || email.split('@')[0],
         },
+        emailRedirectTo: `${request.nextUrl.origin}/login`,
       },
     });
 
