@@ -174,7 +174,6 @@ export async function POST(request: NextRequest) {
           .from('anonymous_usage')
           .insert({
             fingerprint,
-            ip_address: ip,
             ip_subnet: ipSubnet,
             composite_key: compositeKey,
             uses_count: 1,
