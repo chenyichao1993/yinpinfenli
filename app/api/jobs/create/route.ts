@@ -219,6 +219,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 检查全局免费额度上限（30天内最多3次，IP/设备指纹）
+      // 注意：这里检查的是即将使用后的数量，所以应该是 >= 2（使用后会变成3）
       const globalCompositeKey = `${ip}_${fingerprint}`;
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const { data: globalQuota, error: globalQuotaError } = await adminClient
@@ -232,6 +233,7 @@ export async function POST(request: NextRequest) {
       } else if (globalQuota) {
         // 如果最后使用时间超过30天，重置计数
         if (new Date(globalQuota.last_used_at) < new Date(thirtyDaysAgo)) {
+          console.log(`Global quota expired, resetting: compositeKey=${globalCompositeKey}`);
           // 重置为0（但保留记录）
           await adminClient
             .from('global_quota_tracking')
@@ -240,12 +242,19 @@ export async function POST(request: NextRequest) {
               last_used_at: new Date().toISOString(),
             })
             .eq('composite_key', globalCompositeKey);
-        } else if (globalQuota.uses_count >= 3) {
-          return NextResponse.json(
-            { error: 'You have reached the global free quota limit (3 uses per 30 days from this IP/device). Please sign up to continue using our service.' },
-            { status: 403 }
-          );
+        } else {
+          // 检查使用后的数量是否会超过限制（当前 uses_count + 1 > 3）
+          console.log(`Global quota check: compositeKey=${globalCompositeKey}, current uses_count=${globalQuota.uses_count}`);
+          if (globalQuota.uses_count >= 3) {
+            console.log(`Global quota limit reached: compositeKey=${globalCompositeKey}, uses_count=${globalQuota.uses_count}`);
+            return NextResponse.json(
+              { error: 'You have reached the global free quota limit (3 uses per 30 days from this IP/device). Please sign up to continue using our service.' },
+              { status: 403 }
+            );
+          }
         }
+      } else {
+        console.log(`No global quota record found: compositeKey=${globalCompositeKey}, first time use`);
       }
     }
 
