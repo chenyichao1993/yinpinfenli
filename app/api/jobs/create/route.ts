@@ -138,52 +138,39 @@ export async function POST(request: NextRequest) {
         .eq('composite_key', compositeKey)
         .single();
 
-      // 如果查询出错（除了"未找到记录"），记录错误但继续
+      // 如果查询出错（除了"未找到记录"），记录错误
       if (anonUsageError && anonUsageError.code !== 'PGRST116') {
         console.error('Error checking anonymous usage:', anonUsageError);
+        // 如果查询失败，为安全起见拒绝请求
+        return NextResponse.json(
+          { error: 'Failed to check usage limit. Please try again.' },
+          { status: 500 }
+        );
       }
 
       // 检查是否已使用（uses_count >= 1 表示已使用过）
       if (anonymousUsage && anonymousUsage.uses_count >= 1) {
+        console.log(`Anonymous user limit reached: compositeKey=${compositeKey}, uses_count=${anonymousUsage.uses_count}`);
         return NextResponse.json(
           { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
           { status: 403 }
         );
       }
 
+      console.log(`Anonymous user check passed: compositeKey=${compositeKey}, uses_count=${anonymousUsage?.uses_count || 0}`);
+
       // 立即记录本次使用（原子操作，防止并发绕过限制）
-      // 使用 upsert 来原子性地增加计数
+      // 使用数据库的原子操作来确保一致性
       if (anonymousUsage) {
-        // 如果记录已存在，尝试增加计数（原子操作）
-        const { data: updatedUsage, error: updateError } = await adminClient
-          .from('anonymous_usage')
-          .update({ 
-            uses_count: anonymousUsage.uses_count + 1,
-            last_used_at: new Date().toISOString()
-          })
-          .eq('composite_key', compositeKey)
-          .eq('uses_count', anonymousUsage.uses_count) // 条件更新，确保原子性
-          .select()
-          .single();
-
-        if (updateError || !updatedUsage) {
-          // 如果更新失败（可能是并发导致的计数变化），再次检查
-          const { data: recheckUsage } = await adminClient
-            .from('anonymous_usage')
-            .select('*')
-            .eq('composite_key', compositeKey)
-            .single();
-
-          if (recheckUsage && recheckUsage.uses_count >= 1) {
-            return NextResponse.json(
-              { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
-              { status: 403 }
-            );
-          }
-        }
+        // 如果记录已存在，说明这是并发请求或逻辑错误（不应该到这里）
+        console.error(`Unexpected: anonymousUsage exists but was not caught: compositeKey=${compositeKey}, uses_count=${anonymousUsage.uses_count}`);
+        return NextResponse.json(
+          { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
+          { status: 403 }
+        );
       } else {
         // 如果记录不存在，创建新记录（uses_count = 1）
-        const { error: insertError } = await adminClient
+        const { data: insertedRecord, error: insertError } = await adminClient
           .from('anonymous_usage')
           .insert({
             fingerprint,
@@ -191,23 +178,45 @@ export async function POST(request: NextRequest) {
             ip_subnet: ipSubnet,
             composite_key: compositeKey,
             uses_count: 1,
-          });
+            last_used_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
 
         if (insertError) {
           // 如果插入失败（可能是并发导致的重复键），再次检查
-          const { data: recheckUsage } = await adminClient
+          console.log(`Insert failed (possibly concurrent), rechecking: ${insertError.message}`);
+          const { data: recheckUsage, error: recheckError } = await adminClient
             .from('anonymous_usage')
             .select('*')
             .eq('composite_key', compositeKey)
             .single();
 
+          if (recheckError && recheckError.code !== 'PGRST116') {
+            console.error('Recheck error:', recheckError);
+            return NextResponse.json(
+              { error: 'Failed to check usage limit. Please try again.' },
+              { status: 500 }
+            );
+          }
+
           if (recheckUsage && recheckUsage.uses_count >= 1) {
+            console.log(`Recheck found usage: compositeKey=${compositeKey}, uses_count=${recheckUsage.uses_count}`);
             return NextResponse.json(
               { error: 'You have used your free trial. Please sign up to get 2 more free uses.' },
               { status: 403 }
             );
           }
+
+          // 如果重新检查后仍然没有记录，可能是数据库错误，拒绝请求以保安全
+          console.error('Insert failed and recheck found no record - possible database issue');
+          return NextResponse.json(
+            { error: 'Failed to record usage. Please try again.' },
+            { status: 500 }
+          );
         }
+
+        console.log(`Anonymous usage recorded: compositeKey=${compositeKey}, uses_count=1`);
       }
 
       // 检查全局免费额度上限（30天内最多3次，IP/设备指纹）

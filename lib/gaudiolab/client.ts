@@ -74,9 +74,20 @@ export class GaudiolabClient {
     audioUploadId: string,
     types: SeparationType[]
   ): Promise<GaudiolabJobResponse> {
-    // Use "vocal" (singular) not "vocals" (plural)
-    // Gaudiolab API expects comma-separated string (NO "others" type!)
-    const typeString = 'vocal,drum,bass,electric_guitar,acoustic_piano';
+    // Convert frontend types to API format
+    // Frontend uses "vocals" (plural), API expects "vocal" (singular)
+    // Filter out "others" type as API doesn't support it
+    const apiTypes = types
+      .filter(t => t !== 'others') // Remove "others" as API doesn't support it
+      .map(t => t === 'vocals' ? 'vocal' : t); // Convert "vocals" to "vocal"
+    
+    // If no valid types, use all types as fallback
+    const validTypes = apiTypes.length > 0 
+      ? apiTypes 
+      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano'];
+    
+    // Gaudiolab API expects comma-separated string
+    const typeString = validTypes.join(',');
     
     const response = await this.client.post<GaudiolabJobResponse>(
       '/v1/gsep_music_hq_v1/jobs',
