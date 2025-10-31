@@ -98,39 +98,8 @@ export async function POST(request: NextRequest) {
         });
       }
     } else {
-      // 更新匿名用户使用记录（使用 admin 客户端）
-      const ipSubnet = ip.split('.').slice(0, 3).join('.');
-      const compositeKey = `${fingerprint}_${ipSubnet}`;
-
-      const { data: anonymousUsage, error: anonError } = await adminClient
-        .from('anonymous_usage')
-        .select('*')
-        .eq('composite_key', compositeKey)
-        .single();
-
-      if (anonError && anonError.code !== 'PGRST116') {
-        throw anonError;
-      }
-
-      if (anonymousUsage) {
-        // 增加使用次数
-        await adminClient
-          .from('anonymous_usage')
-          .update({ 
-            uses_count: anonymousUsage.uses_count + 1,
-            last_used_at: new Date().toISOString()
-          })
-          .eq('composite_key', compositeKey);
-      } else {
-        // 创建新记录
-        await adminClient.from('anonymous_usage').insert({
-          fingerprint,
-          ip_address: ip,
-          ip_subnet: ipSubnet,
-          composite_key: compositeKey,
-          uses_count: 1,
-        });
-      }
+      // 匿名用户的使用记录已在 jobs/create 接口中立即记录（防止并发绕过限制）
+      // 这里不再重复记录，只更新全局额度追踪
 
       // 更新全局额度追踪（匿名用户）
       const globalCompositeKey = `${ip}_${fingerprint}`;

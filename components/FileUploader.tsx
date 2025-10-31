@@ -143,7 +143,8 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
 
     setFile(droppedFile);
     setStatus('idle');
-    setSelectedTypes(['vocals', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others']);
+    // 不要重置音轨选择，保持用户之前的选择，如果用户没有选择过，则默认为所有音轨
+    setSelectedTypes((prev) => prev.length > 0 ? prev : ['vocals', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others']);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
