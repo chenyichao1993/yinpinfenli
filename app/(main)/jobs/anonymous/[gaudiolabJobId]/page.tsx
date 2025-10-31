@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,15 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; icon: any; variant: any;
 export default function AnonymousJobPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const gaudiolabJobId = params.gaudiolabJobId as string;
+  
+  // 从 URL 参数获取用户选择的音轨类型
+  const selectedTypesParam = searchParams?.get('types');
+  const selectedTypes: SeparationType[] = selectedTypesParam 
+    ? JSON.parse(decodeURIComponent(selectedTypesParam))
+    : [];
+  
   const [jobData, setJobData] = useState<AnonymousJobData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -115,10 +123,39 @@ export default function AnonymousJobPage() {
   const statusInfo = STATUS_CONFIG[jobData.status];
   const StatusIcon = statusInfo.icon;
 
-  // Sort tracks
+  // Sort tracks and filter by user selection
   const sortedTracks = jobData.tracks ? sortSeparationTypes(jobData.tracks.map(t => t.track_type))
     .map(type => jobData.tracks!.find(t => t.track_type === type))
-    .filter(Boolean) as SeparatedTrack[] : [];
+    .filter(Boolean)
+    .filter(track => {
+      // 如果用户选择了 types，只显示用户选择的音轨
+      if (selectedTypes.length > 0) {
+        // 映射 API 返回的类型到前端类型
+        // API 返回: 'vocal' -> 前端: 'vocals'
+        // 未知类型（如 'accom'）不在映射表中，会被过滤掉
+        const apiTypeToFrontend: Record<string, SeparationType> = {
+          'vocal': 'vocals',
+          'vocals': 'vocals',
+          'drum': 'drum',
+          'bass': 'bass',
+          'electric_guitar': 'electric_guitar',
+          'acoustic_piano': 'acoustic_piano',
+          'others': 'others',
+        };
+        
+        const frontendType = apiTypeToFrontend[track.track_type];
+        
+        // 如果类型无法映射（如 'accom'），或者映射后的类型不在用户选择列表中，则过滤掉
+        if (!frontendType) {
+          console.log(`Unknown track type from API, filtering out: ${track.track_type}`);
+          return false;
+        }
+        
+        return selectedTypes.includes(frontendType);
+      }
+      // 如果用户没有选择，显示所有音轨（向后兼容）
+      return true;
+    }) as SeparatedTrack[] : [];
 
   return (
     <div className="container py-12 md:py-20">

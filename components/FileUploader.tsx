@@ -271,8 +271,9 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
       // 登录用户：跳转到数据库 job 页面
       setTimeout(() => {
         if (jobData.isAnonymous) {
-          // 匿名用户：跳转到匿名结果页面
-          window.location.href = `/jobs/anonymous/${jobData.gaudiolabJobId}`;
+          // 匿名用户：跳转到匿名结果页面，并传递用户选择的 types
+          const typesParam = encodeURIComponent(JSON.stringify(selectedTypes));
+          window.location.href = `/jobs/anonymous/${jobData.gaudiolabJobId}?types=${typesParam}`;
         } else {
           // 登录用户：跳转到数据库 job 页面
           onUploadSuccess(jobData.jobId);
