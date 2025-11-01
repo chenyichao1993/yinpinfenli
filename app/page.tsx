@@ -273,7 +273,7 @@ export default function LandingPage() {
                 },
               ].map((item, index) => (
                 <div key={index} className="relative">
-                  <div className="text-6xl font-bold text-primary/10 mb-4">
+                  <div className="text-6xl font-bold text-primary mb-4">
                     {item.step}
                   </div>
                   <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
