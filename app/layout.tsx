@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import Analytics from '@/components/Analytics';
 
 export const metadata: Metadata = {
   title: 'Stem Splitter - AI-Powered Audio Stem Separation',
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body>
+        <Analytics />
         {children}
       </body>
     </html>
