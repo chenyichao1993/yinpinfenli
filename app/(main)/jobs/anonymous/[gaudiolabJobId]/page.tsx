@@ -47,6 +47,8 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; icon: any; variant: any;
   },
 };
 
+const MAX_WAIT_TIME = 30 * 60 * 1000; // 30 分钟超时
+
 export default function AnonymousJobPage() {
   const params = useParams();
   const router = useRouter();
@@ -64,7 +66,6 @@ export default function AnonymousJobPage() {
   const [error, setError] = useState('');
   const [startTime] = useState(Date.now());
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
-  const MAX_WAIT_TIME = 30 * 60 * 1000; // 30 分钟超时
 
   // 更新等待时间显示
   useEffect(() => {
@@ -164,7 +165,7 @@ export default function AnonymousJobPage() {
       isMounted = false;
       if (interval) clearTimeout(interval);
     };
-  }, [gaudiolabJobId, startTime]);
+  }, [gaudiolabJobId, startTime, MAX_WAIT_TIME]);
 
   if (loading) {
     return (

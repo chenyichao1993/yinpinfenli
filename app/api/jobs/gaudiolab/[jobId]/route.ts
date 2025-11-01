@@ -31,11 +31,12 @@ export async function GET(
     console.log(`[Job Status API] Raw status from Gaudiolab: "${jobData.status}" (type: ${typeof jobData.status})`);
     console.log(`[Job Status API] Has downloadUrl:`, !!jobData.downloadUrl);
     if (jobData.downloadUrl) {
-      console.log(`[Job Status API] downloadUrl type:`, typeof jobData.downloadUrl);
-      if (typeof jobData.downloadUrl === 'string') {
-        console.log(`[Job Status API] downloadUrl length: ${jobData.downloadUrl.length}, preview: ${jobData.downloadUrl.substring(0, 200)}...`);
+      const downloadUrl = jobData.downloadUrl as any; // TypeScript 类型可能不准确，使用 any
+      console.log(`[Job Status API] downloadUrl type:`, typeof downloadUrl);
+      if (typeof downloadUrl === 'string') {
+        console.log(`[Job Status API] downloadUrl length: ${downloadUrl.length}, preview: ${downloadUrl.substring(0, 200)}...`);
       } else {
-        console.log(`[Job Status API] downloadUrl keys:`, Object.keys(jobData.downloadUrl || {}));
+        console.log(`[Job Status API] downloadUrl keys:`, Object.keys(downloadUrl || {}));
       }
     }
 
@@ -56,7 +57,8 @@ export async function GET(
     } else {
       // 未知状态，记录警告并尝试根据 downloadUrl 判断
       console.warn(`[Job Status API] Unknown status value: "${jobData.status}", defaulting based on downloadUrl presence`);
-      if (jobData.downloadUrl) {
+      const downloadUrl = jobData.downloadUrl as any;
+      if (downloadUrl) {
         // 如果有 downloadUrl，可能是完成了但状态值不对
         console.log(`[Job Status API] Has downloadUrl but unknown status, treating as 'success'`);
         status = 'success';
@@ -73,14 +75,15 @@ export async function GET(
     if (jobData.downloadUrl) {
       try {
         let downloadUrlObj: any;
+        const downloadUrl = jobData.downloadUrl as any; // TypeScript 类型可能不准确，使用 any
         
         // 如果是字符串，先解析成对象
-        if (typeof jobData.downloadUrl === 'string') {
+        if (typeof downloadUrl === 'string') {
           console.log(`[Job Status API] Parsing downloadUrl from string...`);
-          downloadUrlObj = JSON.parse(jobData.downloadUrl);
+          downloadUrlObj = JSON.parse(downloadUrl);
           console.log(`[Job Status API] Parsed successfully, keys:`, Object.keys(downloadUrlObj));
         } else {
-          downloadUrlObj = jobData.downloadUrl;
+          downloadUrlObj = downloadUrl;
           console.log(`[Job Status API] downloadUrl is already object, keys:`, Object.keys(downloadUrlObj));
         }
         
@@ -106,6 +109,7 @@ export async function GET(
       } catch (error: any) {
         console.error('❌ Error parsing downloadUrl:', error);
         console.error('❌ Raw downloadUrl value:', jobData.downloadUrl);
+        // 尝试将错误信息也包含在响应中，以便前端能看到
       }
     } else {
       console.log(`[Job Status API] No downloadUrl in response, status: ${status}`);
