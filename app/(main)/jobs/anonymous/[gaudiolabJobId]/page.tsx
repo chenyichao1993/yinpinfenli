@@ -94,41 +94,60 @@ export default function AnonymousJobPage() {
           return;
         }
 
-        const response = await fetch(`/api/jobs/gaudiolab/${gaudiolabJobId}`, {
-          cache: 'no-store', // 禁用缓存，确保每次获取最新状态
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        });
+        // 创建 AbortController 用于超时控制
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 秒超时
         
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to fetch job status' }));
-          throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch job status`);
-        }
-        
-        const data = await response.json();
-        
-        // 检查返回的数据是否有错误
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        
-        if (isMounted) {
-          setJobData(data);
-          setError(''); // 清除之前的错误
-
-          // Continue polling if job is still processing
-          if (data.status === 'waiting' || data.status === 'running') {
-            interval = setTimeout(fetchJobStatus, 5000); // 改为每 5 秒轮询一次，减少服务器压力
-          } else {
-            setLoading(false);
+        try {
+          const response = await fetch(`/api/jobs/gaudiolab/${gaudiolabJobId}`, {
+            cache: 'no-store', // 禁用缓存，确保每次获取最新状态
+            headers: {
+              'Cache-Control': 'no-cache',
+            },
+            signal: controller.signal, // 添加 abort signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to fetch job status' }));
+            throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch job status`);
           }
+          
+          const data = await response.json();
+          
+          // 检查返回的数据是否有错误
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          if (isMounted) {
+            setJobData(data);
+            setError(''); // 清除之前的错误
+
+            // Continue polling if job is still processing
+            if (data.status === 'waiting' || data.status === 'running') {
+              interval = setTimeout(fetchJobStatus, 5000); // 改为每 5 秒轮询一次，减少服务器压力
+            } else {
+              setLoading(false);
+            }
+          }
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          // 如果是超时错误，特殊处理
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Request timeout. The server is taking too long to respond.');
+          }
+          throw fetchError;
         }
       } catch (err: any) {
         console.error('Error fetching job status:', err);
         if (isMounted) {
-          // 如果是网络错误或临时错误，继续重试
-          if (err.message?.includes('Failed to fetch') || err.message?.includes('Network')) {
+          // 如果是超时错误，延迟后重试
+          if (err.message?.includes('timeout') || err.message?.includes('Request timeout')) {
+            // 超时错误，延迟后重试
+            interval = setTimeout(fetchJobStatus, 10000); // 超时时每 10 秒重试
+          } else if (err.message?.includes('Failed to fetch') || err.message?.includes('Network')) {
             // 网络错误，延迟后重试
             interval = setTimeout(fetchJobStatus, 10000); // 网络错误时每 10 秒重试
           } else {
