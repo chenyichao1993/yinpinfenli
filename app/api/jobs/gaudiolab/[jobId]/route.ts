@@ -10,11 +10,14 @@ export async function GET(
   { params }: { params: { jobId: string } }
 ) {
   try {
+    console.log(`[Job Status API] ========== START ==========`);
+    console.log(`[Job Status API] JobId: ${params.jobId}`);
+    
     const client = new GaudiolabClient();
     const response = await client.getJobStatus(params.jobId);
 
-    // 添加详细日志
-    console.log(`[Job Status API] JobId: ${params.jobId}`);
+    // 立即记录完整的原始响应
+    console.log(`[Job Status API] Full Gaudiolab API Response:`, JSON.stringify(response, null, 2));
     console.log(`[Job Status API] ResultCode: ${response.resultCode}`);
     
     if (response.resultCode !== 1000) {
@@ -118,7 +121,11 @@ export async function GET(
     // 计算进度
     const progress = status === 'success' ? 100 : (status === 'running' ? 50 : 0);
 
-    console.log(`[Job Status API] Returning: status=${status}, tracks=${tracks.length}, progress=${progress}`);
+    console.log(`[Job Status API] ========== SUMMARY ==========`);
+    console.log(`[Job Status API] Final status: ${status}`);
+    console.log(`[Job Status API] Final tracks count: ${tracks.length}`);
+    console.log(`[Job Status API] Final progress: ${progress}`);
+    console.log(`[Job Status API] ========== END ==========`);
 
     return NextResponse.json({
       status,
