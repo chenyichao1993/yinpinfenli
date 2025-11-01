@@ -47,7 +47,7 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; icon: any; variant: any;
   },
 };
 
-const MAX_WAIT_TIME = 30 * 60 * 1000; // 30 分钟超时
+const MAX_WAIT_TIME = 60 * 60 * 1000; // 60 分钟超时（Gaudiolab 队列可能较慢）
 
 export default function AnonymousJobPage() {
   const params = useParams();
@@ -85,11 +85,11 @@ export default function AnonymousJobPage() {
 
     const fetchJobStatus = async () => {
       try {
-        // 检查是否超时
+        // 检查是否超时（60分钟）
         const elapsed = Date.now() - startTime;
         if (elapsed > MAX_WAIT_TIME) {
           if (isMounted) {
-            setError('Processing is taking longer than expected. Please try again or contact support.');
+            setError('Processing has exceeded the maximum wait time (60 minutes). The task may be stuck in the queue. Please try uploading again or contact support.');
             setLoading(false);
           }
           return;
@@ -306,14 +306,18 @@ export default function AnonymousJobPage() {
                 Processing Your Audio
               </CardTitle>
               <CardDescription>
-                This may take a few minutes depending on the audio length
+                {jobData.status === 'waiting' 
+                  ? 'Your audio is in the processing queue. This may take several minutes depending on server load.'
+                  : 'This may take a few minutes depending on the audio length'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Progress value={jobData.progress || 0} className="h-2" />
               <div className="flex items-center justify-between mt-2">
                 <p className="text-sm text-muted-foreground">
-                  {jobData.status === 'waiting' ? 'Waiting in queue...' : `Processing... ${jobData.progress || 0}%`}
+                  {jobData.status === 'waiting' 
+                    ? 'Waiting in queue... (This is normal, please be patient)' 
+                    : `Processing... ${jobData.progress || 0}%`}
                 </p>
                 <Button
                   variant="ghost"
@@ -324,14 +328,19 @@ export default function AnonymousJobPage() {
                   Refresh Status
                 </Button>
               </div>
-              {/* 显示等待时间提示 */}
-              <p className="text-xs text-muted-foreground mt-2">
-                {elapsedMinutes > 5 && (
-                  <span className="text-yellow-500">
-                    ⏱️ This is taking longer than usual ({elapsedMinutes} minutes). If it continues, please try again.
-                  </span>
-                )}
-              </p>
+                     {/* 显示等待时间提示 */}
+                     <p className="text-xs text-muted-foreground mt-2">
+                       {elapsedMinutes > 10 && jobData.status === 'waiting' && (
+                         <span className="text-yellow-500">
+                           ⏱️ Waiting in queue for {elapsedMinutes} minutes. This is normal during peak times. Please keep this page open.
+                         </span>
+                       )}
+                       {elapsedMinutes > 10 && jobData.status === 'running' && (
+                         <span className="text-yellow-500">
+                           ⏱️ Processing for {elapsedMinutes} minutes. This may take longer for large audio files.
+                         </span>
+                       )}
+                     </p>
             </CardContent>
           </Card>
         )}
