@@ -87,6 +87,8 @@ export interface SeparatedTrack {
   wav_url: string;
   file_size: number;
   created_at: string;
+  download_url?: string;  // 可选：用于匿名用户 API 返回的数据
+  preview_url?: string;   // 可选：用于匿名用户 API 返回的数据
 }
 
 export interface GaudiolabUploadResponse {
