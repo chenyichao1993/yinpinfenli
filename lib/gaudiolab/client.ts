@@ -76,22 +76,14 @@ export class GaudiolabClient {
   ): Promise<GaudiolabJobResponse> {
     // Convert frontend types to API format
     // Frontend uses "vocals" (plural), API expects "vocal" (singular)
-    // Important: API does NOT accept "others" in the create job request, even though it may return it
-    // So we filter it out when creating the job, but keep it for display purposes
-    const hadOthers = types.includes('others');
+    // According to official docs, API supports: vocals, drums, bass, electric_guitar, acoustic_piano, and others
     const apiTypes = types
-      .filter(t => t !== 'others') // Remove "others" - API doesn't accept it in create request
-      .map(t => t === 'vocals' ? 'vocal' : t); // Convert "vocals" to "vocal"
+      .map(t => t === 'vocals' ? 'vocal' : t); // Convert "vocals" to "vocal", keep "others" as is
     
-    // If user only selected "others", that's invalid
-    if (apiTypes.length === 0 && hadOthers) {
-      throw new Error('Cannot create job with only "others" type. Please select at least one other type (vocals, drums, bass, guitar, or piano).');
-    }
-    
-    // If no valid types after filtering, use all supported types as fallback (excluding "others")
+    // If no valid types, use all supported types as fallback
     const validTypes = apiTypes.length > 0 
       ? apiTypes 
-      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano'];
+      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others'];
     
     // Gaudiolab API expects comma-separated string
     const typeString = validTypes.join(',');
@@ -100,16 +92,26 @@ export class GaudiolabClient {
     console.log(`[GaudiolabClient] Original types: ${JSON.stringify(types)}`);
     console.log(`[GaudiolabClient] API types: ${JSON.stringify(validTypes)}`);
     
-    const response = await this.client.post<GaudiolabJobResponse>(
-      '/v1/gsep_music_hq_v1/jobs',
-      {
-        audioUploadId,
-        type: typeString,
-      }
-    );
-    
-    console.log(`[GaudiolabClient] Create job response:`, JSON.stringify(response.data, null, 2));
-    return response.data;
+    try {
+      const response = await this.client.post<GaudiolabJobResponse>(
+        '/v1/gsep_music_hq_v1/jobs',
+        {
+          audioUploadId,
+          type: typeString,
+        }
+      );
+      
+      console.log(`[GaudiolabClient] Create job response:`, JSON.stringify(response.data, null, 2));
+      return response.data;
+    } catch (error: any) {
+      // Enhanced error logging to diagnose API errors
+      console.error(`[GaudiolabClient] ❌ Error creating job:`);
+      console.error(`[GaudiolabClient] Request URL: /v1/gsep_music_hq_v1/jobs`);
+      console.error(`[GaudiolabClient] Request body:`, JSON.stringify({ audioUploadId, type: typeString }, null, 2));
+      console.error(`[GaudiolabClient] Error response:`, error.response?.data || error.message);
+      console.error(`[GaudiolabClient] Error status:`, error.response?.status);
+      throw error;
+    }
   }
 
   /**
