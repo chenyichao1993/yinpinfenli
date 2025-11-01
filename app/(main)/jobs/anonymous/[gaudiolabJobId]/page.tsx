@@ -94,7 +94,12 @@ export default function AnonymousJobPage() {
           return;
         }
 
-        const response = await fetch(`/api/jobs/gaudiolab/${gaudiolabJobId}`);
+        const response = await fetch(`/api/jobs/gaudiolab/${gaudiolabJobId}`, {
+          cache: 'no-store', // 禁用缓存，确保每次获取最新状态
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Failed to fetch job status' }));
