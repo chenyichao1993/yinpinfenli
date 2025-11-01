@@ -248,14 +248,16 @@ export default function AnonymousJobPage() {
               </div>
 
               <div className="grid gap-4">
-                {sortedTracks.map((track) => (
-                  <AudioPlayer
-                    key={track.id}
-                    trackType={track.track_type as SeparationType}
-                    mp3Url={track.mp3_url || track.download_url}
-                    wavUrl={track.wav_url || track.download_url}
-                  />
-                ))}
+                {sortedTracks
+                  .filter(track => track.mp3_url || track.wav_url || track.download_url) // 安全过滤：确保至少有一个有效的 URL
+                  .map((track) => (
+                    <AudioPlayer
+                      key={track.id}
+                      trackType={track.track_type as SeparationType}
+                      mp3Url={track.mp3_url || track.download_url || ''}
+                      wavUrl={track.wav_url || track.download_url || ''}
+                    />
+                  ))}
               </div>
             </div>
 
