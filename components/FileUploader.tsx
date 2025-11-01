@@ -310,7 +310,8 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
                          usageInfo.remainingUses !== undefined && 
                          usageInfo.remainingUses !== Infinity;
   // 只有正在上传或配额已用完时才禁用上传（不在加载配额时禁用）
-  const disableUpload = uploading || (!checkingUsage && usageInfo && !usageInfo.allowed);
+  // 使用 !! 确保结果是 boolean，而不是 boolean | null
+  const disableUpload = !!uploading || !!(!checkingUsage && usageInfo && !usageInfo.allowed);
 
   return (
     <div className="space-y-6">
