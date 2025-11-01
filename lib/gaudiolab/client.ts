@@ -76,18 +76,21 @@ export class GaudiolabClient {
   ): Promise<GaudiolabJobResponse> {
     // Convert frontend types to API format
     // Frontend uses "vocals" (plural), API expects "vocal" (singular)
-    // Filter out "others" type as API doesn't support it
+    // Note: API actually supports "others", so we keep it
     const apiTypes = types
-      .filter(t => t !== 'others') // Remove "others" as API doesn't support it
       .map(t => t === 'vocals' ? 'vocal' : t); // Convert "vocals" to "vocal"
     
     // If no valid types, use all types as fallback
     const validTypes = apiTypes.length > 0 
       ? apiTypes 
-      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano'];
+      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others'];
     
     // Gaudiolab API expects comma-separated string
     const typeString = validTypes.join(',');
+    
+    console.log(`[GaudiolabClient] Creating job with types: ${typeString}`);
+    console.log(`[GaudiolabClient] Original types: ${JSON.stringify(types)}`);
+    console.log(`[GaudiolabClient] API types: ${JSON.stringify(validTypes)}`);
     
     const response = await this.client.post<GaudiolabJobResponse>(
       '/v1/gsep_music_hq_v1/jobs',
@@ -96,6 +99,8 @@ export class GaudiolabClient {
         type: typeString,
       }
     );
+    
+    console.log(`[GaudiolabClient] Create job response:`, JSON.stringify(response.data, null, 2));
     return response.data;
   }
 

@@ -284,12 +284,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Gaudiolab separation job
+    console.log(`[Job Create API] ========== Creating Gaudiolab Job ==========`);
+    console.log(`[Job Create API] UploadId: ${uploadId}`);
+    console.log(`[Job Create API] Types: ${JSON.stringify(types)}`);
+    console.log(`[Job Create API] User: ${user ? user.id : 'anonymous'}`);
+    
     const client = new GaudiolabClient();
     const jobResponse = await client.createJob(uploadId, types as SeparationType[]);
 
+    console.log(`[Job Create API] Gaudiolab API Response:`, JSON.stringify(jobResponse, null, 2));
+    console.log(`[Job Create API] ResultCode: ${jobResponse.resultCode}`);
+    console.log(`[Job Create API] JobId: ${jobResponse.resultData?.jobId}`);
+
     if (jobResponse.resultCode !== 1000) {
+      console.error(`[Job Create API] Failed to create job: ${jobResponse.resultMessage}`);
       throw new Error(jobResponse.resultMessage || 'Failed to create separation job');
     }
+
+    console.log(`[Job Create API] ✅ Job created successfully: ${jobResponse.resultData.jobId}`);
 
     // Create separation job record (only for logged-in users)
     let job = null;
