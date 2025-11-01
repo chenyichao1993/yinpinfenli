@@ -126,11 +126,12 @@ export default function AnonymousJobPage() {
             setJobData(data);
             setError(''); // 清除之前的错误
 
+            // 当收到状态数据时，停止显示 loading，改为显示处理中的 UI
+            setLoading(false);
+
             // Continue polling if job is still processing
             if (data.status === 'waiting' || data.status === 'running') {
               interval = setTimeout(fetchJobStatus, 5000); // 改为每 5 秒轮询一次，减少服务器压力
-            } else {
-              setLoading(false);
             }
           }
         } catch (fetchError: any) {
