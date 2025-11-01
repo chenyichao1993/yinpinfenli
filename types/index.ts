@@ -119,7 +119,7 @@ export interface GaudiolabJobStatusResponse {
   resultMessage?: string;
   resultData: {
     jobId: string;
-    status: JobStatus;
+    status: string; // Gaudiolab API 返回的实际状态值（如 'pending', 'processing', 'success', 'completed' 等）
     expireAt?: string;
     downloadUrl?: {
       [key in SeparationType]?: {
