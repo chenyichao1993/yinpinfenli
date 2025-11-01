@@ -62,35 +62,85 @@ export default function AnonymousJobPage() {
   const [jobData, setJobData] = useState<AnonymousJobData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [startTime] = useState(Date.now());
+  const [elapsedMinutes, setElapsedMinutes] = useState(0);
+  const MAX_WAIT_TIME = 30 * 60 * 1000; // 30 分钟超时
+
+  // 更新等待时间显示
+  useEffect(() => {
+    if (jobData?.status === 'waiting' || jobData?.status === 'running') {
+      const timer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 60000);
+        setElapsedMinutes(elapsed);
+      }, 60000); // 每分钟更新一次
+
+      return () => clearInterval(timer);
+    }
+  }, [jobData?.status, startTime]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let isMounted = true;
 
     const fetchJobStatus = async () => {
       try {
+        // 检查是否超时
+        const elapsed = Date.now() - startTime;
+        if (elapsed > MAX_WAIT_TIME) {
+          if (isMounted) {
+            setError('Processing is taking longer than expected. Please try again or contact support.');
+            setLoading(false);
+          }
+          return;
+        }
+
         const response = await fetch(`/api/jobs/gaudiolab/${gaudiolabJobId}`);
-        if (!response.ok) throw new Error('Failed to fetch job status');
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to fetch job status' }));
+          throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch job status`);
+        }
         
         const data = await response.json();
-        setJobData(data);
+        
+        // 检查返回的数据是否有错误
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        if (isMounted) {
+          setJobData(data);
+          setError(''); // 清除之前的错误
 
-        // Continue polling if job is still processing
-        if (data.status === 'waiting' || data.status === 'running') {
-          interval = setTimeout(fetchJobStatus, 3000); // Poll every 3 seconds
+          // Continue polling if job is still processing
+          if (data.status === 'waiting' || data.status === 'running') {
+            interval = setTimeout(fetchJobStatus, 5000); // 改为每 5 秒轮询一次，减少服务器压力
+          } else {
+            setLoading(false);
+          }
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load job status');
-      } finally {
-        setLoading(false);
+        console.error('Error fetching job status:', err);
+        if (isMounted) {
+          // 如果是网络错误或临时错误，继续重试
+          if (err.message?.includes('Failed to fetch') || err.message?.includes('Network')) {
+            // 网络错误，延迟后重试
+            interval = setTimeout(fetchJobStatus, 10000); // 网络错误时每 10 秒重试
+          } else {
+            setError(err.message || 'Failed to load job status. Please refresh the page.');
+            setLoading(false);
+          }
+        }
       }
     };
 
     fetchJobStatus();
 
     return () => {
+      isMounted = false;
       if (interval) clearTimeout(interval);
     };
-  }, [gaudiolabJobId]);
+  }, [gaudiolabJobId, startTime]);
 
   if (loading) {
     return (
@@ -228,9 +278,52 @@ export default function AnonymousJobPage() {
             </CardHeader>
             <CardContent>
               <Progress value={jobData.progress || 0} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">
-                {jobData.status === 'waiting' ? 'Waiting in queue...' : `Processing... ${jobData.progress || 0}%`}
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-sm text-muted-foreground">
+                  {jobData.status === 'waiting' ? 'Waiting in queue...' : `Processing... ${jobData.progress || 0}%`}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                  className="text-xs"
+                >
+                  Refresh Status
+                </Button>
+              </div>
+              {/* 显示等待时间提示 */}
+              <p className="text-xs text-muted-foreground mt-2">
+                {elapsedMinutes > 5 && (
+                  <span className="text-yellow-500">
+                    ⏱️ This is taking longer than usual ({elapsedMinutes} minutes). If it continues, please try again.
+                  </span>
+                )}
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <Card className="glass-effect mb-8 border-destructive/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                Error Loading Job Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <div className="flex gap-2">
+                <Button onClick={() => window.location.reload()} variant="default">
+                  Refresh Page
+                </Button>
+                <Link href="/">
+                  <Button variant="outline">
+                    Back to Home
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         )}
