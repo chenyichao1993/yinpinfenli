@@ -76,14 +76,22 @@ export class GaudiolabClient {
   ): Promise<GaudiolabJobResponse> {
     // Convert frontend types to API format
     // Frontend uses "vocals" (plural), API expects "vocal" (singular)
-    // Note: API actually supports "others", so we keep it
+    // Important: API does NOT accept "others" in the create job request, even though it may return it
+    // So we filter it out when creating the job, but keep it for display purposes
+    const hadOthers = types.includes('others');
     const apiTypes = types
+      .filter(t => t !== 'others') // Remove "others" - API doesn't accept it in create request
       .map(t => t === 'vocals' ? 'vocal' : t); // Convert "vocals" to "vocal"
     
-    // If no valid types, use all types as fallback
+    // If user only selected "others", that's invalid
+    if (apiTypes.length === 0 && hadOthers) {
+      throw new Error('Cannot create job with only "others" type. Please select at least one other type (vocals, drums, bass, guitar, or piano).');
+    }
+    
+    // If no valid types after filtering, use all supported types as fallback (excluding "others")
     const validTypes = apiTypes.length > 0 
       ? apiTypes 
-      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others'];
+      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano'];
     
     // Gaudiolab API expects comma-separated string
     const typeString = validTypes.join(',');
