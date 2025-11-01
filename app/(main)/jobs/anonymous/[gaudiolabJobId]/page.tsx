@@ -117,9 +117,16 @@ export default function AnonymousJobPage() {
           
           const data = await response.json();
           
-          // 检查返回的数据是否有错误
-          if (data.error) {
-            throw new Error(data.error);
+          // 检查返回的数据是否有错误或错误状态
+          if (data.error || data.status === 'error') {
+            const errorMessage = data.error || 'Failed to fetch job status';
+            console.error('[Frontend] API returned error:', errorMessage);
+            if (isMounted) {
+              setError(errorMessage);
+              setLoading(false);
+              // 不继续轮询错误状态
+            }
+            return; // 提前返回，不继续处理
           }
           
           if (isMounted) {

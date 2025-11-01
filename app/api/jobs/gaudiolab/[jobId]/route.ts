@@ -12,9 +12,43 @@ export async function GET(
   try {
     console.log(`[Job Status API] ========== START ==========`);
     console.log(`[Job Status API] JobId: ${params.jobId}`);
+    console.log(`[Job Status API] Request URL: ${request.url}`);
     
     const client = new GaudiolabClient();
-    const response = await client.getJobStatus(params.jobId);
+    
+    // 添加超时处理
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Gaudiolab API request timeout after 20 seconds')), 20000);
+    });
+    
+    let response;
+    try {
+      console.log(`[Job Status API] Calling Gaudiolab API...`);
+      response = await Promise.race([
+        client.getJobStatus(params.jobId),
+        timeoutPromise,
+      ]) as any;
+      console.log(`[Job Status API] ✅ Gaudiolab API call successful`);
+    } catch (apiError: any) {
+      console.error(`[Job Status API] ❌ Gaudiolab API call failed:`);
+      console.error(`[Job Status API] Error name: ${apiError.name}`);
+      console.error(`[Job Status API] Error message: ${apiError.message}`);
+      console.error(`[Job Status API] Error stack: ${apiError.stack}`);
+      
+      // 如果是 axios 错误，记录更多信息
+      if (apiError.response) {
+        console.error(`[Job Status API] Response status: ${apiError.response.status}`);
+        console.error(`[Job Status API] Response data:`, JSON.stringify(apiError.response.data, null, 2));
+        console.error(`[Job Status API] Response headers:`, JSON.stringify(apiError.response.headers, null, 2));
+      }
+      if (apiError.request) {
+        console.error(`[Job Status API] Request made but no response received`);
+        console.error(`[Job Status API] Request config:`, JSON.stringify(apiError.config || {}, null, 2));
+      }
+      
+      // 重新抛出错误，让外层 catch 处理
+      throw apiError;
+    }
 
     // 立即记录完整的原始响应
     console.log(`[Job Status API] Full Gaudiolab API Response:`, JSON.stringify(response, null, 2));
@@ -133,10 +167,46 @@ export async function GET(
       progress,
     });
   } catch (error: any) {
-    console.error('Error fetching Gaudiolab job status:', error);
+    console.error(`[Job Status API] ========== ERROR ==========`);
+    console.error(`[Job Status API] Error type: ${typeof error}`);
+    console.error(`[Job Status API] Error name: ${error.name}`);
+    console.error(`[Job Status API] Error message: ${error.message}`);
+    console.error(`[Job Status API] Error stack: ${error.stack}`);
+    
+    // 如果是 axios 错误，记录详细信息
+    if (error.isAxiosError) {
+      console.error(`[Job Status API] This is an Axios error`);
+      if (error.response) {
+        console.error(`[Job Status API] Response status: ${error.response.status}`);
+        console.error(`[Job Status API] Response data:`, JSON.stringify(error.response.data, null, 2));
+      }
+      if (error.request) {
+        console.error(`[Job Status API] No response received from Gaudiolab API`);
+        console.error(`[Job Status API] Request URL: ${error.config?.url}`);
+        console.error(`[Job Status API] Request method: ${error.config?.method}`);
+      }
+    }
+    
+    // 确定错误状态码
+    let statusCode = 500;
+    let errorMessage = error.message || 'Failed to fetch job status';
+    
+    if (error.message?.includes('timeout')) {
+      statusCode = 504; // Gateway Timeout
+      errorMessage = 'Request to Gaudiolab API timed out. Please try again.';
+    } else if (error.response?.status) {
+      statusCode = error.response.status;
+    }
+    
+    console.error(`[Job Status API] Returning error response: ${statusCode} - ${errorMessage}`);
+    console.error(`[Job Status API] ========== END ERROR ==========`);
+    
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch job status' },
-      { status: 500 }
+      { 
+        error: errorMessage,
+        status: 'error', // 添加 status 字段，让前端知道这是错误状态
+      },
+      { status: statusCode }
     );
   }
 }
