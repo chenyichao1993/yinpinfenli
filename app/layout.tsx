@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://stemsplitter.com',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://stemsplitter.xyz',
     title: 'Stem Splitter - AI-Powered Audio Stem Separation',
     description: 'Professional audio stem separation powered by AI. Isolate vocals, drums, bass, guitar, and piano from any audio track.',
     siteName: 'Stem Splitter',

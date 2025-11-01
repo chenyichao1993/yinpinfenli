@@ -2,7 +2,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://stemsplitter.com/sitemap.xml
+Sitemap: https://stemsplitter.xyz/sitemap.xml
 
 
 
