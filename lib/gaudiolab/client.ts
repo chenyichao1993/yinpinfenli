@@ -77,27 +77,14 @@ export class GaudiolabClient {
     // Convert frontend types to API format
     // Frontend uses "vocals" (plural), API expects "vocal" (singular)
     // According to official docs, API supports: vocals, drums, bass, electric_guitar, acoustic_piano, and others
-    // However, API may not accept "others" in the request (even though it returns it in results)
-    // So we filter it out when creating the job, but API will still return "others" in the results if available
-    const hadOthers = types.includes('others');
+    // We keep all types as user selected - API should support them
     const apiTypes = types
-      .filter(t => t !== 'others') // Temporarily filter out "others" to avoid API errors
-      .map(t => t === 'vocals' ? 'vocal' : t); // Convert "vocals" to "vocal"
+      .map(t => t === 'vocals' ? 'vocal' : t); // Convert "vocals" to "vocal", keep others as is
     
-    // If user only selected "others", use default types (API doesn't accept "others" alone)
-    if (apiTypes.length === 0 && hadOthers) {
-      console.warn(`[GaudiolabClient] User selected only "others", using default types instead`);
-      apiTypes.push('vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano');
-    }
-    
-    // If no valid types, use all supported types as fallback (excluding "others")
+    // If no valid types, use all supported types as fallback
     const validTypes = apiTypes.length > 0 
       ? apiTypes 
-      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano'];
-    
-    if (hadOthers) {
-      console.log(`[GaudiolabClient] Note: "others" was selected but filtered out from request. API will return it in results if available.`);
-    }
+      : ['vocal', 'drum', 'bass', 'electric_guitar', 'acoustic_piano', 'others'];
     
     // Gaudiolab API expects comma-separated string
     const typeString = validTypes.join(',');
@@ -122,8 +109,42 @@ export class GaudiolabClient {
       console.error(`[GaudiolabClient] ❌ Error creating job:`);
       console.error(`[GaudiolabClient] Request URL: /v1/gsep_music_hq_v1/jobs`);
       console.error(`[GaudiolabClient] Request body:`, JSON.stringify({ audioUploadId, type: typeString }, null, 2));
-      console.error(`[GaudiolabClient] Error response:`, error.response?.data || error.message);
+      console.error(`[GaudiolabClient] Full error object:`, JSON.stringify(error.response?.data || error, null, 2));
+      console.error(`[GaudiolabClient] Error response data:`, error.response?.data);
+      console.error(`[GaudiolabClient] Error message:`, error.message);
       console.error(`[GaudiolabClient] Error status:`, error.response?.status);
+      
+      // If error mentions "Unsupported type", check if it's specifically about "others"
+      const errorMessage = error.response?.data?.resultMessage || error.response?.data?.message || error.message || '';
+      const errorData = error.response?.data || {};
+      
+      console.error(`[GaudiolabClient] Full error response:`, JSON.stringify(errorData, null, 2));
+      
+      // Try different variations if "others" causes issues
+      if (errorMessage.includes('Unsupported') && validTypes.includes('others')) {
+        // Try 1: Remove "others" and retry
+        console.warn(`[GaudiolabClient] ⚠️ API rejected "others", trying without it`);
+        const fallbackTypes = validTypes.filter(t => t !== 'others');
+        if (fallbackTypes.length > 0) {
+          const fallbackTypeString = fallbackTypes.join(',');
+          console.log(`[GaudiolabClient] Retry attempt 1: types=${fallbackTypeString}`);
+          try {
+            const fallbackResponse = await this.client.post<GaudiolabJobResponse>(
+              '/v1/gsep_music_hq_v1/jobs',
+              {
+                audioUploadId,
+                type: fallbackTypeString,
+              }
+            );
+            console.log(`[GaudiolabClient] ✅ Fallback succeeded (without "others")`);
+            console.warn(`[GaudiolabClient] ⚠️ Note: "others" was removed from request. API may still return it in results.`);
+            return fallbackResponse.data;
+          } catch (fallbackError: any) {
+            console.error(`[GaudiolabClient] ❌ Fallback also failed:`, fallbackError.response?.data || fallbackError.message);
+          }
+        }
+      }
+      
       throw error;
     }
   }
