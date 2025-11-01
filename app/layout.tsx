@@ -33,6 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <meta name="msvalidate.01" content="0FD3ED4594B7A18B5EEB6AB13525372E" />
+      </head>
       <body>
         <Analytics />
         {children}
