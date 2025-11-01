@@ -14,12 +14,23 @@ export class GaudiolabClient {
   private client: AxiosInstance;
 
   constructor(apiKey?: string) {
+    // 检查 API Key 是否存在
+    const finalApiKey = apiKey || API_KEY;
+    if (!finalApiKey) {
+      console.error('[GaudiolabClient] ❌ GAUDIOLAB_API_KEY is not set!');
+      throw new Error('Gaudiolab API key is not configured');
+    }
+    
+    console.log(`[GaudiolabClient] Initializing client with baseURL: ${BASE_URL}`);
+    console.log(`[GaudiolabClient] API Key present: ${finalApiKey ? 'Yes (length: ' + finalApiKey.length + ')' : 'No'}`);
+    
     this.client = axios.create({
       baseURL: BASE_URL,
       headers: {
-        'x-ga-apikey': apiKey || API_KEY,
+        'x-ga-apikey': finalApiKey,
         'Content-Type': 'application/json',
       },
+      timeout: 30000, // 30秒超时
     });
   }
 
@@ -112,8 +123,14 @@ export class GaudiolabClient {
     console.log(`[GaudiolabClient] Creating job with types: ${typeString}`);
     console.log(`[GaudiolabClient] Original types: ${JSON.stringify(types)}`);
     console.log(`[GaudiolabClient] API types: ${JSON.stringify(validTypes)}`);
+    console.log(`[GaudiolabClient] UploadId: ${audioUploadId}`);
+    console.log(`[GaudiolabClient] Full request URL: ${BASE_URL}/v1/gsep_music_hq_v1/jobs`);
+    console.log(`[GaudiolabClient] Request body:`, JSON.stringify({ audioUploadId, type: typeString }, null, 2));
     
     try {
+      const requestStartTime = Date.now();
+      console.log(`[GaudiolabClient] Sending request to Gaudiolab API...`);
+      
       const response = await this.client.post<GaudiolabJobResponse>(
         '/v1/gsep_music_hq_v1/jobs',
         {
@@ -121,6 +138,11 @@ export class GaudiolabClient {
           type: typeString,
         }
       );
+      
+      const requestDuration = Date.now() - requestStartTime;
+      console.log(`[GaudiolabClient] ✅ Request completed in ${requestDuration}ms`);
+      console.log(`[GaudiolabClient] Response status: ${response.status}`);
+      console.log(`[GaudiolabClient] Response headers:`, JSON.stringify(response.headers, null, 2));
       
       console.log(`[GaudiolabClient] Create job response:`, JSON.stringify(response.data, null, 2));
       return response.data;

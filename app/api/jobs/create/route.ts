@@ -303,6 +303,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Job Create API] ✅ Job created successfully: ${jobResponse.resultData.jobId}`);
 
+    // 立即查询一次任务状态，确认创建时的初始状态
+    try {
+      console.log(`[Job Create API] Checking initial job status...`);
+      const initialStatus = await client.getJobStatus(jobResponse.resultData.jobId);
+      console.log(`[Job Create API] Initial job status:`, JSON.stringify(initialStatus, null, 2));
+      console.log(`[Job Create API] Initial status value: ${initialStatus.resultData?.status}`);
+    } catch (statusError: any) {
+      console.error(`[Job Create API] Failed to get initial status:`, statusError.message);
+      // 不抛出错误，继续执行
+    }
+
     // Create separation job record (only for logged-in users)
     let job = null;
     if (user && audioUpload) {
