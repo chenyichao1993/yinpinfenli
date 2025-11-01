@@ -77,30 +77,31 @@ export async function GET(
       }
     }
 
-    // 改进的状态映射：处理更多可能的状态值（转换为小写比较）
+    // 关键修复：优先检查 downloadUrl
+    // 如果 Gaudiolab 返回了 downloadUrl，说明处理已完成并返回了结果
+    // 无论状态值是什么（可能是 "waiting"、"running" 或其他），都应该判定为成功
     let status: 'waiting' | 'running' | 'success' | 'failed';
-    const rawStatus = String(jobData.status || '').toLowerCase().trim();
     
-    console.log(`[Job Status API] Normalized status: "${rawStatus}"`);
-    
-    if (rawStatus === 'pending' || rawStatus === 'waiting' || rawStatus === 'queued' || rawStatus === '0') {
-      status = 'waiting';
-    } else if (rawStatus === 'processing' || rawStatus === 'running' || rawStatus === 'in_progress' || rawStatus === '1' || rawStatus === '2') {
-      status = 'running';
-    } else if (rawStatus === 'success' || rawStatus === 'completed' || rawStatus === 'done' || rawStatus === 'finished' || rawStatus === '3') {
+    if (jobData.downloadUrl) {
+      // 有 downloadUrl = 处理完成，有结果可用
+      console.log(`[Job Status API] ✅ Has downloadUrl, treating as 'success' (actual status from API: "${jobData.status}")`);
       status = 'success';
-    } else if (rawStatus === 'failed' || rawStatus === 'error' || rawStatus === '4') {
-      status = 'failed';
     } else {
-      // 未知状态，记录警告并尝试根据 downloadUrl 判断
-      console.warn(`[Job Status API] Unknown status value: "${jobData.status}", defaulting based on downloadUrl presence`);
-      const downloadUrl = jobData.downloadUrl as any;
-      if (downloadUrl) {
-        // 如果有 downloadUrl，可能是完成了但状态值不对
-        console.log(`[Job Status API] Has downloadUrl but unknown status, treating as 'success'`);
+      // 没有 downloadUrl，根据状态值判断
+      const rawStatus = String(jobData.status || '').toLowerCase().trim();
+      console.log(`[Job Status API] No downloadUrl, checking status value: "${rawStatus}"`);
+      
+      if (rawStatus === 'pending' || rawStatus === 'waiting' || rawStatus === 'queued' || rawStatus === '0') {
+        status = 'waiting';
+      } else if (rawStatus === 'processing' || rawStatus === 'running' || rawStatus === 'in_progress' || rawStatus === '1' || rawStatus === '2') {
+        status = 'running';
+      } else if (rawStatus === 'success' || rawStatus === 'completed' || rawStatus === 'done' || rawStatus === 'finished' || rawStatus === '3') {
         status = 'success';
+      } else if (rawStatus === 'failed' || rawStatus === 'error' || rawStatus === '4') {
+        status = 'failed';
       } else {
-        console.log(`[Job Status API] No downloadUrl and unknown status, treating as 'waiting'`);
+        // 未知状态，默认为 waiting
+        console.warn(`[Job Status API] Unknown status value: "${jobData.status}", no downloadUrl, treating as 'waiting'`);
         status = 'waiting';
       }
     }
