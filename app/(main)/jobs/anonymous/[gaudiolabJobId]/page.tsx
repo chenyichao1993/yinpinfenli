@@ -117,6 +117,8 @@ export default function AnonymousJobPage() {
           
           const data = await response.json();
           
+          console.log('[Frontend] ✅ Received job status response:', JSON.stringify(data, null, 2));
+          
           // 检查返回的数据是否有错误或错误状态
           if (data.error || data.status === 'error') {
             const errorMessage = data.error || 'Failed to fetch job status';
@@ -130,16 +132,26 @@ export default function AnonymousJobPage() {
           }
           
           if (isMounted) {
+            console.log('[Frontend] Setting jobData and stopping loading...');
+            console.log('[Frontend] Data status:', data.status);
+            console.log('[Frontend] Data tracks count:', data.tracks?.length || 0);
+            
             setJobData(data);
             setError(''); // 清除之前的错误
 
             // 当收到状态数据时，停止显示 loading，改为显示处理中的 UI
             setLoading(false);
+            console.log('[Frontend] ✅ Loading set to false, should show processing UI');
 
             // Continue polling if job is still processing
             if (data.status === 'waiting' || data.status === 'running') {
+              console.log(`[Frontend] Status is "${data.status}", scheduling next poll in 5 seconds...`);
               interval = setTimeout(fetchJobStatus, 5000); // 改为每 5 秒轮询一次，减少服务器压力
+            } else {
+              console.log(`[Frontend] Status is "${data.status}", stopping polling.`);
             }
+          } else {
+            console.warn('[Frontend] Component unmounted, skipping state update');
           }
         } catch (fetchError: any) {
           clearTimeout(timeoutId);
