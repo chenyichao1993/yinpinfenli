@@ -64,6 +64,10 @@ export async function GET(
 
     const jobData = response.resultData;
     
+    // 添加日志：查看完整的响应数据（包括所有可能的字段）
+    console.log(`[Job Status API] Complete jobData object keys:`, Object.keys(jobData || {}));
+    console.log(`[Job Status API] Complete jobData:`, JSON.stringify(jobData, null, 2));
+    
     // 添加日志：查看实际返回的状态值
     console.log(`[Job Status API] Raw status from Gaudiolab: "${jobData.status}" (type: ${typeof jobData.status})`);
     console.log(`[Job Status API] Has downloadUrl:`, !!jobData.downloadUrl);
@@ -153,8 +157,27 @@ export async function GET(
       console.log(`[Job Status API] No downloadUrl in response, status: ${status}`);
     }
 
-    // 计算进度
-    const progress = status === 'success' ? 100 : (status === 'running' ? 50 : 0);
+    // 计算进度：优先使用 API 返回的进度，否则根据状态估算
+    let progress = 0;
+    if (jobData.progress !== undefined && jobData.progress !== null) {
+      // API 返回了明确的进度值
+      progress = typeof jobData.progress === 'number' ? jobData.progress : parseInt(String(jobData.progress), 10) || 0;
+      console.log(`[Job Status API] Using API progress value: ${progress}`);
+    } else if (jobData.progressPercent !== undefined && jobData.progressPercent !== null) {
+      // API 返回了百分比格式的进度
+      progress = typeof jobData.progressPercent === 'number' ? jobData.progressPercent : parseInt(String(jobData.progressPercent), 10) || 0;
+      console.log(`[Job Status API] Using API progressPercent value: ${progress}`);
+    } else {
+      // 根据状态估算进度
+      if (status === 'success') {
+        progress = 100;
+      } else if (status === 'running') {
+        progress = 50;
+      } else {
+        progress = 0;
+      }
+      console.log(`[Job Status API] Estimated progress based on status: ${progress}`);
+    }
 
     console.log(`[Job Status API] ========== SUMMARY ==========`);
     console.log(`[Job Status API] Final status: ${status}`);
