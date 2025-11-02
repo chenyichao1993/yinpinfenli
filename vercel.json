@@ -1,0 +1,25 @@
+{
+  "functions": {
+    "app/api/jobs/gaudiolab/[jobId]/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/jobs/create/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/upload/complete/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
+

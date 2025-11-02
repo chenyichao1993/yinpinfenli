@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,6 +66,8 @@ export default function AnonymousJobPage() {
   const [error, setError] = useState('');
   const [startTime] = useState(Date.now());
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
+  const pollCountRef = useRef(0);
+  const [lastPollTime, setLastPollTime] = useState<number | null>(null);
 
   // 更新等待时间显示
   useEffect(() => {
@@ -85,6 +87,13 @@ export default function AnonymousJobPage() {
 
     const fetchJobStatus = async () => {
       try {
+        // 更新轮询计数和时间
+        const currentPollTime = Date.now();
+        pollCountRef.current += 1;
+        const newPollCount = pollCountRef.current;
+        setLastPollTime(currentPollTime);
+        console.log(`[Frontend] Poll #${newPollCount} - Time: ${new Date(currentPollTime).toLocaleTimeString()}, Elapsed: ${Math.floor((currentPollTime - startTime) / 1000)}s`);
+        
         // 检查是否超时（60分钟）
         const elapsed = Date.now() - startTime;
         if (elapsed > MAX_WAIT_TIME) {
@@ -100,13 +109,20 @@ export default function AnonymousJobPage() {
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 秒超时
         
         try {
+          const fetchStartTime = Date.now();
+          console.log(`[Frontend] Fetching job status from: /api/jobs/gaudiolab/${gaudiolabJobId}`);
+          
           const response = await fetch(`/api/jobs/gaudiolab/${gaudiolabJobId}`, {
             cache: 'no-store', // 禁用缓存，确保每次获取最新状态
             headers: {
               'Cache-Control': 'no-cache',
+              'X-Request-Id': `poll-${Date.now()}-${newPollCount}`, // 添加请求 ID 用于追踪
             },
             signal: controller.signal, // 添加 abort signal
           });
+          
+          const fetchDuration = Date.now() - fetchStartTime;
+          console.log(`[Frontend] Fetch completed in ${fetchDuration}ms, status: ${response.status}`);
           
           clearTimeout(timeoutId);
           
