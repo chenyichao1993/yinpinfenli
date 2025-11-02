@@ -29,6 +29,7 @@ export class GaudiolabClient {
       headers: {
         'x-ga-apikey': finalApiKey,
         'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; StemSplitter/1.0)',
       },
       timeout: 30000, // 30秒超时
     });

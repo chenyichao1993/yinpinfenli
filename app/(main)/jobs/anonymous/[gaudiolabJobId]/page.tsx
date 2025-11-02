@@ -160,9 +160,10 @@ export default function AnonymousJobPage() {
             console.log('[Frontend] ✅ Loading set to false, should show processing UI');
 
             // Continue polling if job is still processing
+            // 根据文档示例代码，使用 10 秒轮询间隔
             if (data.status === 'waiting' || data.status === 'running') {
-              console.log(`[Frontend] Status is "${data.status}", scheduling next poll in 5 seconds...`);
-              interval = setTimeout(fetchJobStatus, 5000); // 改为每 5 秒轮询一次，减少服务器压力
+              console.log(`[Frontend] Status is "${data.status}", scheduling next poll in 10 seconds...`);
+              interval = setTimeout(fetchJobStatus, 10000); // 按照文档示例：10秒轮询间隔
             } else {
               console.log(`[Frontend] Status is "${data.status}", stopping polling.`);
             }

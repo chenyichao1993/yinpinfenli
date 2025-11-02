@@ -10,8 +10,21 @@ export async function GET(
   { params }: { params: { jobId: string } }
 ) {
   try {
+    // 关键修复：确保 Job ID 正确解码
+    // Next.js 的 params 可能已经解码，但在某些情况下（如部署环境）可能没有
+    // Job ID 通常包含 Base64 编码的字符，如 '=' 可能被编码为 '%3D'
+    let decodedJobId = params.jobId;
+    try {
+      // 尝试解码（如果已经是解码的，不会出错）
+      decodedJobId = decodeURIComponent(params.jobId);
+    } catch (e) {
+      // 如果解码失败，使用原始值
+      decodedJobId = params.jobId;
+    }
+    
     console.log(`[Job Status API] ========== START ==========`);
-    console.log(`[Job Status API] JobId: ${params.jobId}`);
+    console.log(`[Job Status API] Raw JobId from params: ${params.jobId}`);
+    console.log(`[Job Status API] Decoded JobId: ${decodedJobId}`);
     console.log(`[Job Status API] Request URL: ${request.url}`);
     
     const client = new GaudiolabClient();
@@ -23,9 +36,9 @@ export async function GET(
     
     let response;
     try {
-      console.log(`[Job Status API] Calling Gaudiolab API...`);
+      console.log(`[Job Status API] Calling Gaudiolab API with jobId: ${decodedJobId}...`);
       response = await Promise.race([
-        client.getJobStatus(params.jobId),
+        client.getJobStatus(decodedJobId),
         timeoutPromise,
       ]) as any;
       console.log(`[Job Status API] ✅ Gaudiolab API call successful`);
@@ -130,20 +143,29 @@ export async function GET(
         }
         
         // 遍历每个音轨类型
+        // 根据文档，downloadUrl 对象包含 vocal, drum, bass, electric_guitar, acoustic_piano
+        // 每个音轨类型有 mp3 和 wav 字段
         Object.entries(downloadUrlObj).forEach(([trackType, urls]: [string, any]) => {
-          console.log(`[Job Status API] Processing track: ${trackType}, urls type:`, typeof urls, urls);
-          if (urls && typeof urls === 'object' && (urls.mp3 || urls.wav)) {
-            tracks.push({
-              id: `${jobData.jobId}_${trackType}`,
-              track_type: trackType,
-              download_url: urls.mp3 || urls.wav,
-              preview_url: urls.mp3 || urls.wav,
-              mp3_url: urls.mp3,
-              wav_url: urls.wav,
-            });
-            console.log(`[Job Status API] ✅ Added track: ${trackType}`);
+          console.log(`[Job Status API] Processing track: ${trackType}, urls type:`, typeof urls);
+          
+          // 根据文档格式验证：urls 应该是包含 mp3 和 wav 的对象
+          if (urls && typeof urls === 'object') {
+            // 检查是否有 mp3 或 wav
+            if (urls.mp3 || urls.wav) {
+              tracks.push({
+                id: `${decodedJobId}_${trackType}`,
+                track_type: trackType,
+                download_url: urls.mp3 || urls.wav,
+                preview_url: urls.mp3 || urls.wav,
+                mp3_url: urls.mp3,
+                wav_url: urls.wav,
+              });
+              console.log(`[Job Status API] ✅ Added track: ${trackType} (mp3: ${!!urls.mp3}, wav: ${!!urls.wav})`);
+            } else {
+              console.warn(`[Job Status API] ⚠️ Track ${trackType} missing mp3 and wav URLs:`, JSON.stringify(urls));
+            }
           } else {
-            console.warn(`[Job Status API] ⚠️ Track ${trackType} has invalid format:`, urls);
+            console.warn(`[Job Status API] ⚠️ Track ${trackType} has invalid format (not an object):`, typeof urls);
           }
         });
         
